@@ -17,6 +17,7 @@ private Q_SLOTS:
   void addNode();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
+  void addConnection(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector);
 
 private:
   QAction *deleteNodeAction;

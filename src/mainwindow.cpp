@@ -70,6 +70,11 @@ void MainWindow::deleteSelectedNodes() {
   }
 }
 
+void MainWindow::addConnection(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector)
+{
+	networkModel.addConnection(fromConnector, toConnector);
+}
+
 void MainWindow::scaleUp() { imageView->setScale(imageView->scale() * 2.0); }
 
 void MainWindow::scaleDown() { imageView->setScale(imageView->scale() * 0.5); }

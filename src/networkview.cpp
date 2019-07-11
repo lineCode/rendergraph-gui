@@ -104,6 +104,9 @@ void NetworkView::setModel(AbstractNetworkModel *model) {
     disconnect(model_, SIGNAL(outputConnectorRemoved(const QModelIndex &, int)),
                this,
                SLOT(outputConnectorRemovedPrivate(const QModelIndex &, int)));
+	disconnect(model_, SIGNAL(connectionAdded(const QModelIndex &, const QModelIndex &)),
+		this,
+		SLOT(connectionAddedPrivate(const QModelIndex &, const QModelIndex &)));
   }
 
   model_ = (model == nullptr) ? empty : model;
@@ -121,6 +124,9 @@ void NetworkView::setModel(AbstractNetworkModel *model) {
     connect(model_, SIGNAL(outputConnectorRemoved(const QModelIndex &, int)),
             this,
             SLOT(outputConnectorRemovedPrivate(const QModelIndex &, int)));
+	connect(model_, SIGNAL(connectionAdded(const QModelIndex &, const QModelIndex &)),
+		this,
+		SLOT(connectionAddedPrivate(const QModelIndex &, const QModelIndex &)));
   }
 
   reset();
@@ -176,6 +182,21 @@ void NetworkView::inputConnectorRemovedPrivate(const QModelIndex &parent,
 void NetworkView::outputConnectorRemovedPrivate(const QModelIndex &parent,
                                                 int index) {
   nodes[parent.row()]->outputConnectorRemoved(index);
+}
+
+void NetworkView::connectionAddedPrivate(const QModelIndex & fromConnector, const QModelIndex & toConnector)
+{
+	auto srcNode = nodes[fromConnector.parent().row()];
+	auto srcConnector = srcNode->outputConnectors_[fromConnector.row()];
+	auto dstNode = nodes[toConnector.parent().row()];
+	auto dstConnector = dstNode->outputConnectors_[toConnector.row()];
+
+	QPainterPath p;
+	p.moveTo(srcConnector->scenePos());
+	p.cubicTo(QPointF{ 0, -30 }, QPointF{ 0, 30 }, dstConnector->scenePos());
+	auto connection = new QGraphicsPathItem{ p };
+	scene_.addItem(connection);
+	connections_.push_back(connection);
 }
 
 /*
@@ -305,10 +326,10 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
                    << c->connectorIndex_ << ")";
           if (connectionStartType_ ==
               AbstractNetworkModel::ConnectionType::Input) {
-            Q_EMIT connectionAdded(connectionStart_,
+            Q_EMIT connectionRequest(connectionStart_,
                                    c->connectorIndex_);
           } else {
-            Q_EMIT connectionAdded(c->connectorIndex_,
+            Q_EMIT connectionRequest(c->connectorIndex_,
                                    connectionStart_);
           }
         }

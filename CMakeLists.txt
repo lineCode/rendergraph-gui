@@ -11,7 +11,7 @@ set(CMAKE_AUTORCC ON)
 
 #==========================================================
 # Dependencies
-find_package(Qt5Widgets CONFIG REQUIRED)
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(ZeroMQ CONFIG REQUIRED)
 find_package(msgpack CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)

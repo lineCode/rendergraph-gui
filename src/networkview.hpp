@@ -8,6 +8,7 @@
 #include <QGraphicsWidget>
 #include <QPersistentModelIndex>
 #include <QGraphicsLineItem>
+#include <QGraphicsPathItem>
 
 class NetworkView;
 
@@ -84,7 +85,6 @@ public:
 	  {}
 
 Q_SIGNALS:
-  //void connectorClicked(NodeConnectorGraphicsObject* connector);
 };
 
 //=============================================================================
@@ -104,7 +104,7 @@ public:
   QList<QPersistentModelIndex> selectedNodes() const;
 
 Q_SIGNALS:
-  void connectionAdded(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector);
+  void connectionRequest(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector);
 
 private Q_SLOTS:
   void nodeAddedPrivate(int index);
@@ -114,6 +114,7 @@ private Q_SLOTS:
   void outputConnectorAddedPrivate(const QModelIndex &parent, int index);
   void inputConnectorRemovedPrivate(const QModelIndex &parent, int index);
   void outputConnectorRemovedPrivate(const QModelIndex &parent, int index);
+  void connectionAddedPrivate(const QModelIndex& fromConnector, const QModelIndex& toConnector);
 
   /*
   void connectorRemovedPrivate(const AbstractNetworkModel::NodeIndex &parent,
@@ -152,6 +153,7 @@ private:
   NetworkScene scene_;
   QGraphicsItemGroup *gridGroup_;
   std::vector<NodeGraphicsObject *> nodes;
+  std::vector<QGraphicsPathItem *> connections_;
   bool makingConnection_ = false;
   QPersistentModelIndex connectionStart_;
   AbstractNetworkModel::ConnectionType connectionStartType_;
