@@ -1,5 +1,9 @@
 #include "standardnetworkmodel.hpp"
 
+static const int INPUT_CONNECTOR_COLUMN = 1;
+static const int OUTPUT_CONNECTOR_COLUMN = 2;
+static const int CONNECTION_COLUMN = 3;
+
 QModelIndex StandardNetworkModel::index(int row, int column,
                                         const QModelIndex &parent) const {
   if (parent.isValid()) {
@@ -14,7 +18,12 @@ QModelIndex StandardNetworkModel::index(int row, int column,
 }
 
 QModelIndex StandardNetworkModel::parent(const QModelIndex &child) const {
-  return QModelIndex();
+  if (auto ptr = static_cast<Node *>(child.internalPointer())) {
+    // pointer to parent node
+    return ptr->thisIndex;
+  } else {
+    return {};
+  }
 }
 
 int StandardNetworkModel::rowCount(const QModelIndex &parent) const {
@@ -32,118 +41,122 @@ QVariant StandardNetworkModel::data(const QModelIndex &index, int role) const {
 
 int StandardNetworkModel::nodeCount() const { return nodes_.size(); }
 
-bool StandardNetworkModel::checkNodeIndex(
-    const AbstractNetworkModel::NodeIndex &index) const {
-  if (index.index.parent().isValid()) {
+bool StandardNetworkModel::checkNodeIndex(const QModelIndex &index) const {
+  if (index.parent().isValid()) {
     return false;
   }
-  int row = index.index.row();
+  int row = index.row();
   if (row < 0 || row >= nodes_.size()) {
     return false;
   }
   return true;
 }
 
-AbstractNetworkModel::NodeIndex StandardNetworkModel::node(int index) const {
-  return NodeIndex{createIndex(index, 0)};
+QModelIndex StandardNetworkModel::nodeIndex(int index) const {
+  return createIndex(index, 0);
 }
 
-AbstractNetworkModel::NodeIndex
-StandardNetworkModel::nodeByID(NodeID id) const {
-  auto index = findNode(id);
-  if (index == -1)
-    return NodeIndex{};
-  return NodeIndex{createIndex(index, 0)};
-}
-
-int StandardNetworkModel::inputConnectorCount(
-    const AbstractNetworkModel::NodeIndex &parent) const {
+int StandardNetworkModel::inputConnectorCount(const QModelIndex &parent) const {
   if (!checkNodeIndex(parent)) {
     return 0;
   }
-  return nodes_[parent.index.row()]->inputConnectors.size();
+  return nodes_[parent.row()]->inputConnectors.size();
 }
 
 int StandardNetworkModel::outputConnectorCount(
-    const AbstractNetworkModel::NodeIndex &parent) const {
+    const QModelIndex &parent) const {
   if (!checkNodeIndex(parent)) {
     return 0;
   }
-  return nodes_[parent.index.row()]->outputConnectors.size();
+  return nodes_[parent.row()]->outputConnectors.size();
 }
 
-AbstractNetworkModel::ConnectorIndex StandardNetworkModel::inputConnector(
-    const AbstractNetworkModel::NodeIndex &parent, int index) const {
-  if (!checkNodeIndex(parent)) {
+QModelIndex StandardNetworkModel::inputConnector(const QModelIndex &nodeIndex,
+                                                 int index) const {
+  if (!checkNodeIndex(nodeIndex)) {
     return {};
   }
-  auto nc = inputConnectorCount(parent);
-  if (index < 0 || index >= nc) {
+  auto n = nodes_[nodeIndex.row()].get();
+  if (index < 0 || index >= n->inputConnectors.size()) {
     return {};
   }
-  return ConnectorIndex{
-      createIndex(index, 0, nodes_[parent.index.row()].get())};
+
+  return createIndex(index, 0, n);
 }
 
-AbstractNetworkModel::ConnectorIndex StandardNetworkModel::outputConnector(
-    const AbstractNetworkModel::NodeIndex &parent, int index) const {
-  if (!checkNodeIndex(parent)) {
+QModelIndex StandardNetworkModel::outputConnector(const QModelIndex &nodeIndex,
+                                                  int index) const {
+  if (!checkNodeIndex(nodeIndex)) {
     return {};
   }
-  auto nc = inputConnectorCount(parent);
-  if (index < 0 || index >= nc) {
+  auto n = nodes_[nodeIndex.row()].get();
+  if (index < 0 || index >= n->outputConnectors.size()) {
     return {};
   }
-  return ConnectorIndex{
-      createIndex(index, 0, nodes_[parent.index.row()].get())};
+
+  return createIndex(index, 0, n);
 }
 
-AbstractNetworkModel::ConnectorIndex StandardNetworkModel::inputConnectorByID(
-    const AbstractNetworkModel::NodeIndex &parent,
-    ConnectorID connector) const {
-  return ConnectorIndex();
+// CONNECTIONS
+int StandardNetworkModel::connectionCount(const QModelIndex &nodeIndex) const {
+  if (!checkNodeIndex(nodeIndex)) {
+    return 0;
+  }
+  return nodes_[nodeIndex.row()]->connections.size();
 }
 
-AbstractNetworkModel::ConnectorIndex StandardNetworkModel::outputConnectorByID(
-    const AbstractNetworkModel::NodeIndex &parent,
-    ConnectorID connector) const {
-  return ConnectorIndex();
-}
-
-int StandardNetworkModel::inputConnectionCount(
-    const AbstractNetworkModel::NodeIndex &parent) const {
-  return 0;
-}
-
-AbstractNetworkModel::ConnectionIndex StandardNetworkModel::inputConnection(
-    const AbstractNetworkModel::NodeIndex &parent, int index) const {
-  return ConnectionIndex();
-}
-
-int StandardNetworkModel::outputConnectionCount(
-    const AbstractNetworkModel::NodeIndex &parent) const {
-  return 0;
-}
-
-AbstractNetworkModel::ConnectionIndex StandardNetworkModel::outputConnection(
-    const AbstractNetworkModel::NodeIndex &parent, int index) const {
-  return ConnectionIndex();
-}
-
-AbstractNetworkModel::Endpoints StandardNetworkModel::endpoints(
-    const AbstractNetworkModel::ConnectionIndex &connection) const {
-  return Endpoints();
-}
-
-bool StandardNetworkModel::addNode(NodeID id) {
-  if (findNode(id) != -1) {
-    return false;
+QModelIndex StandardNetworkModel::connection(const QModelIndex &nodeIndex,
+                                             int index) const {
+  if (!checkNodeIndex(nodeIndex)) {
+    return {};
+  }
+  auto n = nodes_[nodeIndex.row()].get();
+  if (index < 0 || index >= n->connections.size()) {
+    return {};
   }
 
+  return createIndex(index, 0, n);
+}
+
+// NODE INSERTION/REMOVAL
+bool StandardNetworkModel::insertNode(int index) {
   auto n = std::make_unique<Node>();
-  n->id = id;
-  insertNode(std::move(n));
+  beginInsertRows({}, index, index);
+  nodes_.insert(nodes_.begin() + index, std::move(n));
+  endInsertRows();
+  Q_EMIT nodeAdded(index);
   return true;
+}
+
+void StandardNetworkModel::removeConnectionsFromToNode(int index) {
+  auto n = nodes_[index].get();
+  for (auto &&c : n->connections) {
+    auto nn = nodes_[c.otherConnector.parent().row()].get();
+    for (int i = nn->connections.size() - 1; i >= 0; ++i) {
+      if (nn->connections[i].otherConnector.parent() == n->thisIndex) {
+        if (nn->connections[i].type == ConnectionType::Input) {
+          removeConnection(nn->connections[i].otherConnector,
+                           nn->connections[i].thisConnector);
+        } else {
+          removeConnection(nn->connections[i].thisConnector,
+                           nn->connections[i].otherConnector);
+		}
+      }
+    }
+  }
+}
+
+void StandardNetworkModel::removeConnectionsOnConnector(
+    const QModelIndex &connector) {
+  auto n = static_cast<Node *>(connector.internalPointer());
+  // remove all connections involving the connector
+  for (int i = n->connections.size() - 1; i >= 0; ++i) {
+    if (n->connections[i].thisConnector == connector) {
+      if (n->connections[i].type == ConnectionType::Input) {
+        removeConnection(n->connections[i].otherConnector, connector);
+	  }
+    }
+  }
 }
 
 bool StandardNetworkModel::removeNode(int index) {
@@ -152,105 +165,124 @@ bool StandardNetworkModel::removeNode(int index) {
   }
 
   // remove all connections involving the node
-  auto n = nodes_[index].get();
-  auto id = n->id;
-  for (auto &&inputConnection : n->inputConnections) {
-    auto from = nodes_[findNode(inputConnection.nodeID)].get();
-    from->outputConnections.erase(
-        std::remove_if(from->outputConnections.begin(),
-                       from->outputConnections.end(),
-                       [=](const Connection &to) { return to.nodeID == id; }),
-        from->outputConnections.end());
-  }
-
-  for (auto &&outputConnection : n->outputConnections) {
-    auto to = nodes_[findNode(outputConnection.nodeID)].get();
-    to->inputConnections.erase(
-        std::remove_if(to->inputConnections.begin(), to->inputConnections.end(),
-                                              [=](const Connection &from) {
-                                                return from.nodeID == id;
-                                              }),
-        to->inputConnections.end());
-  }
+  removeConnectionsFromToNode(index);
 
   // erase the node
-
   beginRemoveRows({}, index, index);
   nodes_.erase(nodes_.begin() + index);
   endRemoveRows();
-  Q_EMIT nodeRemoved(index, id);
+  Q_EMIT nodeRemoved(index);
   return true;
 }
 
-bool StandardNetworkModel::removeNodeByID(NodeID id) { return false; }
-
-bool StandardNetworkModel::insertInputConnector(const NodeIndex &parent,
-                                                int indexAfter,
-                                                ConnectorID id) {
-  if (!checkNodeIndex(parent)) {
+// INSERT/REMOVE CONNECTORS
+bool StandardNetworkModel::insertInputConnector(const QModelIndex &nodeIndex,
+                                                int index) {
+  if (!checkNodeIndex(nodeIndex)) {
     return false;
   }
-  auto n = nodes_[parent.index.row()].get();
-  n->inputConnectors.insert(n->inputConnectors.begin() + indexAfter, id);
-}
-
-bool StandardNetworkModel::removeInputConnector(const NodeIndex &parent,
-                                                int index) {
-  return false;
-}
-
-bool StandardNetworkModel::removeInputConnectorByID(const NodeIndex &parent,
-                                                    ConnectorID id) {
-  return false;
-}
-
-bool StandardNetworkModel::insertOutputConnector(const NodeIndex &parent,
-                                                 int indexAfter,
-                                                 ConnectorID id) {
-  return false;
-}
-
-bool StandardNetworkModel::removeOutputConnector(const NodeIndex &parent,
-                                                 int index) {
-  return false;
-}
-
-bool StandardNetworkModel::removeOutputConnectorByID(const NodeIndex &parent,
-                                                     ConnectorID id) {
-  return false;
-}
-
-bool StandardNetworkModel::addConnection(NodeID from, ConnectorID fromConnector,
-                                         NodeID to, ConnectorID toConnector) {
-  return false;
-}
-
-void StandardNetworkModel::insertNode(std::unique_ptr<Node> node) {
-  // insert into sorted vector
-  auto it = std::lower_bound(
-      nodes_.begin(), nodes_.end(), node->id,
-      [](const std::unique_ptr<Node> &n, NodeID id) { return n->id < id; });
-
-  int row = 0;
-  if (it == nodes_.end()) {
-    row = nodes_.size();
-  } else {
-    row = it - nodes_.begin();
-  }
-
-  beginInsertRows({}, row, row);
-  nodes_.insert(it, std::move(node));
+  auto n = nodes_[nodeIndex.row()].get();
+  beginInsertRows(createIndex(nodeIndex.row(), INPUT_CONNECTOR_COLUMN), index,
+                  index);
+  n->inputConnectors.insert(n->inputConnectors.begin() + index, QVariant{});
   endInsertRows();
-  Q_EMIT nodeAdded(row);
+  Q_EMIT inputConnectorAdded(nodeIndex, index);
+  return true;
 }
 
-int StandardNetworkModel::findNode(NodeID id) const {
-  auto it = std::lower_bound(
-      nodes_.begin(), nodes_.end(), id,
-      [](const std::unique_ptr<Node> &n, NodeID id) { return n->id < id; });
-
-  if (it == nodes_.end()) {
-    return -1;
+bool StandardNetworkModel::insertOutputConnector(const QModelIndex &nodeIndex,
+                                                 int index) {
+  if (!checkNodeIndex(nodeIndex)) {
+    return false;
   }
-  return it - nodes_.begin();
+  auto n = nodes_[nodeIndex.row()].get();
+  beginInsertRows(createIndex(nodeIndex.row(), OUTPUT_CONNECTOR_COLUMN), index,
+                  index);
+  n->outputConnectors.insert(n->outputConnectors.begin() + index, QVariant{});
+  endInsertRows();
+  Q_EMIT outputConnectorAdded(nodeIndex, index);
+  return true;
+}
+
+// Removing a connector also removes all connections attached to it
+bool StandardNetworkModel::removeInputConnector(const QModelIndex &nodeIndex,
+                                                int index) {
+  auto n = nodes_[index].get();
+  removeConnectionsOnConnector(inputConnector(nodeIndex, index));
+  beginRemoveRows(createIndex(nodeIndex.row(), INPUT_CONNECTOR_COLUMN), index,
+                  index);
+  n->inputConnectors.erase(n->inputConnectors.begin() + index);
+  endRemoveRows();
+  Q_EMIT inputConnectorRemoved(nodeIndex, index);
+  return true;
+}
+
+bool StandardNetworkModel::removeOutputConnector(const QModelIndex &nodeIndex,
+                                                 int index) {
+  auto n = nodes_[index].get();
+  removeConnectionsOnConnector(outputConnector(nodeIndex, index));
+  beginRemoveRows(createIndex(nodeIndex.row(), INPUT_CONNECTOR_COLUMN), index,
+                  index);
+  n->inputConnectors.erase(n->inputConnectors.begin() + index);
+  endRemoveRows();
+  Q_EMIT outputConnectorRemoved(nodeIndex, index);
+  return true;
+}
+
+bool StandardNetworkModel::addConnection(const QModelIndex &fromConnector,
+                                         const QModelIndex &toConnector) {
+  return false;
+  /*auto nFrom = nodes_[fromConnector.parent().row()].get();
+auto nTo = nodes_[toConnector.parent().row()].get();
+//nFrom.
+
+beginRemoveRows(createIndex(nodeIndex.row(), CONNECTION_COLUMN), connIndex,
+            connIndex);
+n->connections.erase(n->connections.begin() + connIndex);
+endRemoveRows();*/
+}
+
+int StandardNetworkModel::findConnection(
+    const Node *n, const QModelIndex &fromConnector,
+    const QModelIndex &toConnector,
+    StandardNetworkModel::ConnectionType connType) const {
+  auto index = -1;
+  for (int i = 0; i < n->connections.size(); ++i) {
+    if (connType == ConnectionType::Input) {
+      // look for incoming connection (from = other, to = this)
+    }
+    if (n->connections[i].otherConnector == fromConnector &&
+        n->connections[i].thisConnector == toConnector) {
+      index = i;
+    }
+  }
+  return index;
+}
+
+bool StandardNetworkModel::removeConnection(const QModelIndex &fromConnector,
+                                            const QModelIndex &toConnector) {
+  auto srcN = static_cast<Node *>(fromConnector.internalPointer());
+  auto dstN = static_cast<Node *>(fromConnector.internalPointer());
+  auto srcConnIndex =
+      findConnection(srcN, fromConnector, toConnector, ConnectionType::Output);
+  auto dstConnIndex =
+      findConnection(dstN, fromConnector, toConnector, ConnectionType::Input);
+
+  if (srcConnIndex == -1 || dstConnIndex == -1) {
+    qDebug("WARNING: could not find corresponding connection in remote node");
+    return false;
+  }
+
+  beginRemoveRows(createIndex(fromConnector.parent().row(), CONNECTION_COLUMN),
+                  srcConnIndex, srcConnIndex);
+  srcN->connections.erase(srcN->connections.begin() + srcConnIndex);
+  endRemoveRows();
+
+  beginRemoveRows(createIndex(toConnector.parent().row(), CONNECTION_COLUMN),
+                  srcConnIndex, srcConnIndex);
+  dstN->connections.erase(dstN->connections.begin() + dstConnIndex);
+  endRemoveRows();
+
+  Q_EMIT connectionRemoved(fromConnector, toConnector);
+  return true;
 }

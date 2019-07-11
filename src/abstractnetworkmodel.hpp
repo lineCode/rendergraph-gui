@@ -4,7 +4,7 @@
 class AbstractNetworkModel : public QAbstractItemModel {
   Q_OBJECT
 public:
-  struct NodeID {
+  /*struct NodeID {
     int id;
     bool operator==(const NodeID &other) const { return id == other.id; }
     bool operator<(const NodeID &other) const { return id < other.id; }
@@ -25,9 +25,9 @@ public:
 
   struct ConnectorIndex {
     QModelIndex index;
-  };
+  };*/
 
-  struct NodeIndex {
+  /*struct NodeIndex {
     QModelIndex index;
 
     const AbstractNetworkModel *networkModel() const {
@@ -50,16 +50,12 @@ public:
       networkModel()->outputConnector(*this, index);
     }
 
-    ConnectorIndex outputConnectorByID(ConnectorID connector) const {
-      networkModel()->outputConnectorByID(*this, connector);
-    }
-
     ConnectorIndex outputConnection(int index) const {
       networkModel()->outputConnection(*this, index);
     }
-  };
+  };*/
 
-  struct ConnectionIndex {
+  /*struct ConnectionIndex {
     QModelIndex index;
 
     const AbstractNetworkModel *networkModel() const {
@@ -67,7 +63,7 @@ public:
     }
 
     Endpoints endpoints() const { networkModel()->endpoints(*this); }
-  };
+  };*/
 
   enum class ConnectionType { Input, Output };
 
@@ -78,90 +74,71 @@ public:
   ~AbstractNetworkModel();
 
   virtual int nodeCount() const = 0;
-  virtual NodeIndex node(int index) const = 0;
-  virtual NodeIndex nodeByID(NodeID id) const = 0;
+  virtual QModelIndex nodeIndex(int index) const = 0;
 
   // Input connectors
-  virtual int inputConnectorCount(const NodeIndex &parent) const = 0;
-  virtual ConnectorIndex inputConnector(const NodeIndex &parent,
+  virtual int inputConnectorCount(const QModelIndex &nodeIndex) const = 0;
+  virtual QModelIndex inputConnector(const QModelIndex &nodeIndex,
                                         int index) const = 0;
-  virtual ConnectorIndex inputConnectorByID(const NodeIndex &parent,
-                                            ConnectorID connector) const = 0;
 
   // Output connectors
-  virtual int outputConnectorCount(const NodeIndex &parent) const = 0;
-  virtual ConnectorIndex outputConnector(const NodeIndex &parent,
+  virtual int outputConnectorCount(const QModelIndex &nodeIndex) const = 0;
+  virtual QModelIndex outputConnector(const QModelIndex &nodeIndex,
                                          int index) const = 0;
-  virtual ConnectorIndex outputConnectorByID(const NodeIndex &parent,
-                                             ConnectorID connector) const = 0;
 
-  // Accessing connections
-  // - return ConnectionIndex
-  // - return Connection*
-  // - return QList<ConnectionIndex>
-
-  // Input connections
-  virtual int inputConnectionCount(const NodeIndex &parent) const = 0;
-  virtual ConnectionIndex inputConnection(const NodeIndex &parent,
-                                          int index) const = 0;
-
-  // Output connections
-  virtual int outputConnectionCount(const NodeIndex &parent) const = 0;
-  virtual ConnectionIndex outputConnection(const NodeIndex &parent,
-                                           int index) const = 0;
+  // connections
+  virtual int connectionCount(const QModelIndex &parent) const = 0;
+  virtual QModelIndex connection(const QModelIndex &parent,
+                                int index) const = 0;
 
   // Connection endpoints
-  virtual Endpoints endpoints(const ConnectionIndex &connection) const = 0;
+  //virtual Endpoints endpoints(const QModelIndex &connection) const = 0;
 
   // add/remove
-  virtual bool addNode(NodeID id) { return false; }
+  virtual bool insertNode(int index) { return false; }
   virtual bool removeNode(int index) { return false; }
-  virtual bool removeNodeByID(NodeID id) { return false; }
 
-  virtual bool insertInputConnector(const NodeIndex &parent, int indexBefore,
-                                    ConnectorID id) {
+  virtual bool insertInputConnector(const QModelIndex &parent, int index) {
     return false;
   }
 
-  virtual bool removeInputConnector(const NodeIndex &parent, int index) {
+  virtual bool removeInputConnector(const QModelIndex &parent, int index) {
     return false;
   }
 
-  virtual bool removeInputConnectorByID(const NodeIndex &parent,
-                                        ConnectorID id) {
+  virtual bool insertOutputConnector(const QModelIndex &parent, int index) {
     return false;
   }
 
-  virtual bool insertOutputConnector(const NodeIndex &parent, int indexBefore,
-                                     ConnectorID id) {
+  virtual bool removeOutputConnector(const QModelIndex &parent, int index) {
     return false;
   }
 
-  virtual bool removeOutputConnector(const NodeIndex &parent, int index) {
+  virtual bool addConnection(const QModelIndex& fromConnector, const QModelIndex& toConnector) {
     return false;
   }
 
-  virtual bool removeOutputConnectorByID(const NodeIndex &parent,
-                                         ConnectorID id) {
+  virtual bool removeConnection(const QModelIndex &fromConnector,
+                                const QModelIndex &toConnector) {
     return false;
   }
 
-  virtual bool addConnection(NodeID from, ConnectorID fromConnector, NodeID to,
-                             ConnectorID toConnector) {
-    return false;
-  }
 
 Q_SIGNALS:
   void nodeAdded(int index);
-  void nodeRemoved(int index, NodeID id);
+  void nodeRemoved(int index);
 
-  void connectorAdded(const NodeIndex &parent, ConnectionType type, int index);
-  void connectorRemoved(const NodeIndex &parent, ConnectionType type,
-                        int index);
+  void inputConnectorAdded(const QModelIndex &parentNode, int index);
+  void inputConnectorRemoved(const QModelIndex &parentNode,
+                             int index);
+  void outputConnectorAdded(const QModelIndex &parentNode, int index);
+  void outputConnectorRemoved(const QModelIndex &parentNode,
+                             int index);
 
-  void connectionAdded(const NodeIndex &parent, ConnectionType type, int index);
-  void connectionRemoved(const NodeIndex &parent, ConnectionType type,
-                         int index);
+  void connectionAdded(const QModelIndex &fromConnector,
+                       const QModelIndex &toConnector);
+  void connectionRemoved(const QModelIndex &fromConnector,
+                         const QModelIndex &toConnector);
 
 protected:
 };

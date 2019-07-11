@@ -16,60 +16,49 @@ public:
 
   // via AbstractNetworkModel
   int nodeCount() const override;
-  NodeIndex node(int index) const override;
-  NodeIndex nodeByID(NodeID id) const override;
-  int inputConnectorCount(const NodeIndex &parent) const override;
-  ConnectorIndex inputConnector(const NodeIndex &parent,
+  QModelIndex nodeIndex(int index) const override;
+  int inputConnectorCount(const QModelIndex &parent) const override;
+  QModelIndex inputConnector(const QModelIndex &parent,
                                 int index) const override;
-  ConnectorIndex inputConnectorByID(const NodeIndex &parent,
-                                    ConnectorID connector) const override;
-  int outputConnectorCount(const NodeIndex &parent) const override;
-  ConnectorIndex outputConnector(const NodeIndex &parent,
+  int outputConnectorCount(const QModelIndex &parent) const override;
+  QModelIndex outputConnector(const QModelIndex &parent,
                                  int index) const override;
-  ConnectorIndex outputConnectorByID(const NodeIndex &parent,
-                                     ConnectorID connector) const override;
-  int inputConnectionCount(const NodeIndex &parent) const override;
-  ConnectionIndex inputConnection(const NodeIndex &parent,
+  int connectionCount(const QModelIndex &parent) const override;
+  QModelIndex connection(const QModelIndex &parent,
                                   int index) const override;
-  int outputConnectionCount(const NodeIndex &parent) const override;
-  ConnectionIndex outputConnection(const NodeIndex &parent,
-                                   int index) const override;
-  Endpoints endpoints(const ConnectionIndex &connection) const override;
+  //Endpoints endpoints(const QModelIndex &connection) const override;
 
-  bool addNode(NodeID id) override;
+  bool insertNode(int index) override;
   bool removeNode(int index) override;
-  bool removeNodeByID(NodeID id) override;
-  bool insertInputConnector(const NodeIndex &parent, int indexAfter,
-                            ConnectorID id) override;
-  bool removeInputConnector(const NodeIndex &parent, int index) override;
-  bool removeInputConnectorByID(const NodeIndex &parent,
-                                ConnectorID id) override;
-  bool insertOutputConnector(const NodeIndex &parent, int indexAfter,
-                             ConnectorID id) override;
-  bool removeOutputConnector(const NodeIndex &parent, int index) override;
-  bool removeOutputConnectorByID(const NodeIndex &parent,
-                                 ConnectorID id) override;
-  bool addConnection(NodeID from, ConnectorID fromConnector, NodeID to,
-                     ConnectorID toConnector) override;
+  bool insertInputConnector(const QModelIndex &parent, int index) override;
+  bool removeInputConnector(const QModelIndex &parent, int index) override;
+  bool insertOutputConnector(const QModelIndex &parent, int index) override;
+  bool removeOutputConnector(const QModelIndex &parent, int index) override;
+  bool addConnection(const QModelIndex& fromConnector, const QModelIndex& toConnector) override;
+  bool removeConnection(const QModelIndex &fromConnector,
+                        const QModelIndex &toConnector) override;
 
 private:
   struct Connection {
-    AbstractNetworkModel::NodeID nodeID;
-    AbstractNetworkModel::ConnectorID connectorID;
+    ConnectionType type;
+    QPersistentModelIndex thisConnector;
+    QPersistentModelIndex otherConnector;
   };
-
   struct Node {
-    NodeID id;
-    std::vector<AbstractNetworkModel::ConnectorID> inputConnectors;
-    std::vector<AbstractNetworkModel::ConnectorID> outputConnectors;
-    std::vector<Connection> inputConnections;
-    std::vector<Connection> outputConnections;
+	QPersistentModelIndex thisIndex;
+    std::vector<QVariant> inputConnectors;
+    std::vector<QVariant> outputConnectors;
+    std::vector<Connection> connections;
   };
 
-  bool checkNodeIndex(const NodeIndex &index) const;
-  int findNode(NodeID id) const;
-  void insertNode(std::unique_ptr<Node> node);
+  int findConnection(const Node* n,
+                     const QModelIndex &fromConnector,
+                     const QModelIndex &toConnector,
+                     StandardNetworkModel::ConnectionType connType) const;
+  bool checkNodeIndex(const QModelIndex &index) const;
+  void removeConnectionsFromToNode(int index);
+  void removeConnectionsOnConnector(const QModelIndex &connector);
 
-  // Sorted by node ID
+
   std::vector<std::unique_ptr<Node>> nodes_;
 };

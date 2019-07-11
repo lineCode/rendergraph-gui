@@ -1,25 +1,29 @@
 #pragma once
-#include <QMainWindow>
-#include <QListView>
 #include "imageview.hpp"
 #include "networkview.hpp"
 #include "standardnetworkmodel.hpp"
+#include <QListView>
+#include <QMainWindow>
 
 class MainWindow : public QMainWindow {
-	Q_OBJECT
+  Q_OBJECT
 public:
-	MainWindow(QWidget* parent = nullptr);
-	~MainWindow();
+  MainWindow(QWidget *parent = nullptr);
+  ~MainWindow();
 
 private Q_SLOTS:
-	void scaleUp();
-	void scaleDown();
-	void addNode();
+  void scaleUp();
+  void scaleDown();
+  void addNode();
+  void showNetworkViewContextMenu(const QPoint &);
+  void deleteSelectedNodes();
 
 private:
-	QListView* listView;
-	ImageView* imageView;
-	NetworkView* networkView;
-	StandardNetworkModel networkModel;
-	int nodeIdCounter = 0;
+  QAction *deleteNodeAction;
+  QAction *addNodeAction;
+  QListView *listView;
+  ImageView *imageView;
+  NetworkView *networkView;
+  StandardNetworkModel networkModel;
+  int nodeIdCounter = 0;
 };
