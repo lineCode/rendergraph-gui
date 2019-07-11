@@ -1,74 +1,63 @@
 #pragma once
 #include <QAbstractItemModel>
 
+/*
+class AbstractNetworkModel2
+{
+	Q_OBJECT
+public:
+	struct NodeIndex {
+		quint64 key = 0;
+
+		bool isValid() const { return key != 0; }
+	};
+
+	struct ConnectorIndex {
+		NodeIndex node;
+		quint64 key;
+		
+		bool isValid() const { return key != 0; }
+	};
+
+	virtual int nodeCount() const = 0;
+	virtual QList<NodeIndex> nodes() const = 0;
+
+	virtual int inputConnectorCount(const NodeIndex& node) const = 0;
+	virtual QList<ConnectorIndex> inputConnectors(const NodeIndex& node) const = 0;
+	virtual int outputConnectorCount(const NodeIndex& node) const = 0;
+	virtual QList<ConnectorIndex> outputConnectors(const NodeIndex& node) const = 0;
+
+	virtual int connectionCount(const ConnectorIndex &connector) const = 0;
+	virtual QList<ConnectorIndex> connections(const ConnectorIndex &connector) const = 0;
+
+	virtual NodeIndex addNode() { return {}; }
+	virtual bool removeNode(const NodeIndex& node) { return false; }
+
+	virtual ConnectorIndex insertInputConnector(const NodeIndex& node, int index) { return {}; }
+	virtual bool removeInputConnector(const ConnectorIndex&) { return false; }
+	virtual ConnectorIndex insertOutputConnector(const NodeIndex& node, int index) { return {}; }
+	virtual bool removeOutputConnector(const ConnectorIndex&) { return false; }
+
+	virtual bool addConnection(const ConnectorIndex& fromConnector, const ConnectorIndex& toConnector) { return false; }
+	virtual bool removeConnection(const ConnectorIndex &fromConnector, const ConnectorIndex &toConnector) { return false; }
+
+Q_SIGNALS:
+	void nodeAdded(NodeIndex index);
+	void nodeRemoved(NodeIndex index);
+
+	void inputConnectorAdded(const ConnectorIndex&);
+	void inputConnectorRemoved(const ConnectorIndex&);
+	void outputConnectorAdded(const ConnectorIndex&);
+	void outputConnectorRemoved(const ConnectorIndex&);
+
+	void connectionAdded(const ConnectorIndex &fromConnector, const ConnectorIndex &toConnector);
+	void connectionRemoved(const ConnectorIndex &fromConnector, const ConnectorIndex &toConnector);
+};*/
+
 class AbstractNetworkModel : public QAbstractItemModel {
   Q_OBJECT
 public:
-  /*struct NodeID {
-    int id;
-    bool operator==(const NodeID &other) const { return id == other.id; }
-    bool operator<(const NodeID &other) const { return id < other.id; }
-  };
-
-  struct ConnectorID {
-    int id;
-    bool operator==(const ConnectorID &other) const { return id == other.id; }
-    bool operator<(const ConnectorID &other) const { return id < other.id; }
-  };
-
-  struct Endpoints {
-    NodeID from;
-    ConnectorID fromConnector;
-    NodeID to;
-    ConnectorID toConnector;
-  };
-
-  struct ConnectorIndex {
-    QModelIndex index;
-  };*/
-
-  /*struct NodeIndex {
-    QModelIndex index;
-
-    const AbstractNetworkModel *networkModel() const {
-      return static_cast<const AbstractNetworkModel *>(index.model());
-    }
-
-    ConnectorIndex inputConnector(int index) const {
-      networkModel()->inputConnector(*this, index);
-    }
-
-    ConnectorIndex inputConnectorByID(ConnectorID connector) const {
-      networkModel()->inputConnectorByID(*this, connector);
-    }
-
-    ConnectorIndex inputConnection(int index) const {
-      networkModel()->inputConnection(*this, index);
-    }
-
-    ConnectorIndex outputConnector(int index) const {
-      networkModel()->outputConnector(*this, index);
-    }
-
-    ConnectorIndex outputConnection(int index) const {
-      networkModel()->outputConnection(*this, index);
-    }
-  };*/
-
-  /*struct ConnectionIndex {
-    QModelIndex index;
-
-    const AbstractNetworkModel *networkModel() const {
-      return static_cast<const AbstractNetworkModel *>(index.model());
-    }
-
-    Endpoints endpoints() const { networkModel()->endpoints(*this); }
-  };*/
-
-  enum class ConnectionType { Input, Output };
-
-  // adding a connector SHOULD NOT invalidate existing connections
-  // adding a connection SHOULD NOT invalidate existing connections
+   enum class ConnectionType { Input, Output };
 
   AbstractNetworkModel(QObject *parent = nullptr);
   ~AbstractNetworkModel();
@@ -86,13 +75,9 @@ public:
   virtual QModelIndex outputConnector(const QModelIndex &nodeIndex,
                                          int index) const = 0;
 
-  // connections
-  virtual int connectionCount(const QModelIndex &parent) const = 0;
-  virtual QModelIndex connection(const QModelIndex &parent,
-                                int index) const = 0;
-
-  // Connection endpoints
-  //virtual Endpoints endpoints(const QModelIndex &connection) const = 0;
+  // Returns the number of connections on a connector.
+  virtual int connectionCount(const QModelIndex &connectorIndex) const = 0;
+  virtual QModelIndex connection(const QModelIndex &connectorIndex, int index) const = 0;
 
   // add/remove
   virtual bool insertNode(int index) { return false; }

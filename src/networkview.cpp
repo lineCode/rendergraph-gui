@@ -433,20 +433,6 @@ void NodeGraphicsObject::paint(QPainter *painter,
   auto numInputConnectors = model->inputConnectorCount(nodeIndex_);
   auto numOutputConnectors = model->outputConnectorCount(nodeIndex_);
 
-  // draw connectors
-  /*for (int i = 0; i < numInputConnectors; ++i) {
-    painter->drawEllipse(
-        QPointF{(i + 1) * size_.width() / (numInputConnectors + 1), -11.0}, 7.0,
-        7.0);
-  }
-
-  for (int i = 0; i < numOutputConnectors; ++i) {
-    painter->drawEllipse(
-        QPointF{(i + 1) * size_.width() / (numOutputConnectors + 1),
-                size_.height() + 11.0},
-        7.0, 7.0);
-  }*/
-
   auto bnd = boundingRect();
   QRectF textRegion{QPointF{size_.width() + 12.0, 0.0},
                     QPointF{bnd.right() - 20.0, bnd.bottom()}};
@@ -528,12 +514,7 @@ NodeConnectorGraphicsObject::NodeConnectorGraphicsObject(
     QPersistentModelIndex connectorIndex,
     AbstractNetworkModel::ConnectionType type, QGraphicsItem *parent)
     : QGraphicsObject{parent}, type_{type}, connectorIndex_{connectorIndex} {
-  // setMaximumSize(QSizeF{2.0 * CONNECTOR_RADIUS, 2.0 * CONNECTOR_RADIUS});
-  // setGeometry(-CONNECTOR_RADIUS, -CONNECTOR_RADIUS, 2.0 * CONNECTOR_RADIUS,
-  //            2.0 * CONNECTOR_RADIUS);
   setAcceptHoverEvents(true);
-  //setFlags(QGraphicsItem::ItemIsSelectable);
-  //setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
 }
 
 QRectF NodeConnectorGraphicsObject::boundingRect() const {
@@ -577,16 +558,3 @@ void NodeConnectorGraphicsObject::hoverLeaveEvent(QGraphicsSceneHoverEvent *e) {
   hover_ = false;
   update();
 }
-
-/*
-void NodeConnectorGraphicsObject::mousePressEvent(QGraphicsSceneMouseEvent *e) {
-  e->accept();	// some bullshit (although documented)
-}
-
-void NodeConnectorGraphicsObject::mouseReleaseEvent(
-    QGraphicsSceneMouseEvent *e) {
-  auto s = static_cast<NetworkScene *>(scene());
-  Q_EMIT s->connectorClicked(this);
-  e->accept();
-}
-*/

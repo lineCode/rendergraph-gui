@@ -12,6 +12,7 @@
 
 class NetworkView;
 
+
 //=============================================================================
 class NodeConnectorGraphicsObject : public QGraphicsObject {
   Q_OBJECT
@@ -100,7 +101,6 @@ public:
   void setModel(AbstractNetworkModel *model);
   QAbstractItemModel *model() const;
 
-  // int findNode(const QGraphicsItem *item);
   QList<QPersistentModelIndex> selectedNodes() const;
 
 Q_SIGNALS:
@@ -116,36 +116,16 @@ private Q_SLOTS:
   void outputConnectorRemovedPrivate(const QModelIndex &parent, int index);
   void connectionAddedPrivate(const QModelIndex& fromConnector, const QModelIndex& toConnector);
 
-  /*
-  void connectorRemovedPrivate(const AbstractNetworkModel::NodeIndex &parent,
-                               AbstractNetworkModel::ConnectionType type,
-                               int index);
-  void connectionAddedPrivate(const AbstractNetworkModel::NodeIndex &parent,
-                              AbstractNetworkModel::ConnectionType type,
-                              int index);
-  void connectionRemovedPrivate(const AbstractNetworkModel::NodeIndex &parent,
-                                AbstractNetworkModel::ConnectionType type,
-                                int index);*/
-
 protected:
-  // void paintEvent(QPaintEvent*) override;
-  // void resizeEvent(QResizeEvent*) override;
   void mousePressEvent(QMouseEvent *) override;
   void mouseMoveEvent(QMouseEvent *) override;
   void wheelEvent(QWheelEvent *) override;
-  // void scrollContentsBy(int dx, int dy) override;
-  // void drawWidget(QPainter&, QPaintEvent*);
-  // void contextMenuEvent(QContextMenuEvent *e) override;
-
   void drawBackground(QPainter *painter, const QRectF &rect) override;
 
-private Q_SLOTS:
-  //void connectorClicked(NodeConnectorGraphicsObject *connector);
 
 private:
   void reset();
   void createNodeVisual(int index);
-  void removeNodeVisual(int index);
 
   QPoint mouseAnchor;
   QPoint translationBeforeDrag;
