@@ -18,9 +18,18 @@ find_package(cppzmq CONFIG REQUIRED)
 
 #==========================================================
 # Sources
-file(GLOB SOURCES src/*.cpp src/QtAwesome/*.cpp)
-file(GLOB HEADERS src/*.hpp src/QtAwesome/*.hpp)
-set(RESOURCES src/QtAwesome/QtAwesome.qrc)
+file(GLOB SOURCES 
+    src/*.cpp
+    src/ui/*.cpp 
+    src/ui/QtAwesome/*.cpp
+    src/client/*.cpp)
+file(GLOB HEADERS 
+    src/*.hpp
+    src/ui/*.hpp 
+    src/ui/QtAwesome/*.hpp
+    src/client/*.hpp)
+set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
+target_include_directories(rendergraph_gui PRIVATE src/)
 target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq msgpackc-cxx cppzmq)

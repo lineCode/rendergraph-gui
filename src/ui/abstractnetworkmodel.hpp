@@ -54,6 +54,7 @@ Q_SIGNALS:
 	void connectionRemoved(const ConnectorIndex &fromConnector, const ConnectorIndex &toConnector);
 };*/
 
+// 
 class AbstractNetworkModel : public QAbstractItemModel {
   Q_OBJECT
 public:

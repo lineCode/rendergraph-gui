@@ -1,10 +1,11 @@
-#include "mainwindow.hpp"
+#include "ui/mainwindow.hpp"
 #include "QtAwesome/QtAwesome.h"
 #include <QAction>
 #include <QMenu>
 #include <QPushButton>
 #include <QVBoxLayout>
 
+namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   deleteNodeAction =
       new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
@@ -91,3 +92,5 @@ void MainWindow::addNode() {
 }
 
 MainWindow::~MainWindow() {}
+
+} // namespace ui

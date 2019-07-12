@@ -5,6 +5,8 @@
 #include <QListView>
 #include <QMainWindow>
 
+namespace ui {
+
 class MainWindow : public QMainWindow {
   Q_OBJECT
 public:
@@ -17,7 +19,8 @@ private Q_SLOTS:
   void addNode();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
-  void addConnection(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector);
+  void addConnection(QPersistentModelIndex fromConnector,
+                     QPersistentModelIndex toConnector);
 
 private:
   QAction *deleteNodeAction;
@@ -27,3 +30,5 @@ private:
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
 };
+
+} // namespace ui

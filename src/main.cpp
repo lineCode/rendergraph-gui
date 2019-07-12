@@ -1,19 +1,10 @@
-#include "mainwindow.hpp"
+#include "ui/mainwindow.hpp"
 
 #include <iostream>
 #include <QApplication>
-#include <zmq.hpp>
-#include <msgpack.hpp>
 #include <cstdint>
 
 const char* ENDPOINT = "tcp://127.0.0.1:5555";
-
-enum class Method {
-	GetVersion = 0,
-	GetNodeInfo = 1,
-	Kill = 2,
-};
-
 
 int main(int argc, char **argv) {
 	/*// Create ZMQ context and socket
@@ -41,7 +32,7 @@ int main(int argc, char **argv) {
 
 	// Create window
 	auto app = new QApplication(argc, argv);
-	auto mainWindow = new MainWindow();
+	auto mainWindow = new ui::MainWindow();
 	mainWindow->show();
 	app->exec();
     return 0;
