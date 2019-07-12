@@ -23,7 +23,6 @@ private:
   QAction *deleteNodeAction;
   QAction *addNodeAction;
   QListView *listView;
-  ImageView *imageView;
   NetworkView *networkView;
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;

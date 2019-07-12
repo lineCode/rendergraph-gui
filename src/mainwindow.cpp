@@ -6,18 +6,11 @@
 #include <QVBoxLayout>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  listView = new QListView;
   deleteNodeAction =
       new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
   connect(deleteNodeAction, SIGNAL(triggered()), this,
           SLOT(deleteSelectedNodes()));
   addNodeAction = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
-
-  imageView = new ImageView;
-  QImage image;
-  image.load("test.jpg");
-  imageView->setImage(image);
-  imageView->setMinimumHeight(200);
 
   networkView = new NetworkView;
   networkView->setModel(&networkModel);
@@ -25,6 +18,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   networkModel.insertNode(0);
   connect(networkView, SIGNAL(customContextMenuRequested(const QPoint &)), this,
           SLOT(showNetworkViewContextMenu(const QPoint &)));
+  connect(
+      networkView,
+      SIGNAL(connectionRequest(QPersistentModelIndex, QPersistentModelIndex)),
+      this, SLOT(addConnection(QPersistentModelIndex, QPersistentModelIndex)));
 
   auto buttonScaleUp = new QPushButton("+");
   connect(buttonScaleUp, SIGNAL(released()), this, SLOT(scaleUp()));
@@ -42,7 +39,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   layout->addWidget(buttonAddNode);
   layout->addWidget(buttonScaleUp);
   layout->addWidget(buttonScaleDown);
-  layout->addWidget(imageView);
 
   // setup central widget
   setCentralWidget(new QWidget);
@@ -70,14 +66,18 @@ void MainWindow::deleteSelectedNodes() {
   }
 }
 
-void MainWindow::addConnection(QPersistentModelIndex fromConnector, QPersistentModelIndex toConnector)
-{
-	networkModel.addConnection(fromConnector, toConnector);
+void MainWindow::addConnection(QPersistentModelIndex fromConnector,
+                               QPersistentModelIndex toConnector) {
+  networkModel.addConnection(fromConnector, toConnector);
 }
 
-void MainWindow::scaleUp() { imageView->setScale(imageView->scale() * 2.0); }
+void MainWindow::scaleUp() {
+  // imageView->setScale(imageView->scale() * 2.0);
+}
 
-void MainWindow::scaleDown() { imageView->setScale(imageView->scale() * 0.5); }
+void MainWindow::scaleDown() {
+  // imageView->setScale(imageView->scale() * 0.5);
+}
 
 void MainWindow::addNode() {
   networkModel.insertNode(0);

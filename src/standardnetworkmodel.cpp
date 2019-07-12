@@ -134,12 +134,12 @@ void StandardNetworkModel::removeConnectionsOnConnector(
 	const QModelIndex &connectorIndex) {
 	auto c = qobject_cast<ConnectorPrivate*>(static_cast<QObject*>(connectorIndex.internalPointer()));
 	// remove all connections involving the connector
-	for (int i = c->connectedTo.size() - 1; i >= 0; ++i) {
-		if (c->parentIndex.column() == INPUT_CONNECTOR_COLUMN) {
-			removeConnection(c->connectedTo[i], connectorIndex);
+	for (int i = c->connectedTo.size() - 1; i >= 0; --i) {
+		if (c->parentIndex.column() == OUTPUT_CONNECTOR_COLUMN) {
+			removeConnection(connectorIndex, c->connectedTo[i]);
 		}
 		else {
-			removeConnection(connectorIndex, c->connectedTo[i]);
+			removeConnection(c->connectedTo[i], connectorIndex);
 		}
 	}
 }
