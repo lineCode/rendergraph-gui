@@ -1,17 +1,24 @@
 #include "ui/mainwindow.hpp"
+#include "ui/connectdialog.hpp"
 #include "QtAwesome/QtAwesome.h"
 #include <QAction>
 #include <QMenu>
 #include <QPushButton>
+#include <QStatusBar>
 #include <QVBoxLayout>
+#include <QMenuBar>
 
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  deleteNodeAction =
+  deleteNodeAct =
       new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
-  connect(deleteNodeAction, SIGNAL(triggered()), this,
+  connect(deleteNodeAct, SIGNAL(triggered()), this,
           SLOT(deleteSelectedNodes()));
-  addNodeAction = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
+  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
+  connectToServerAct = new QAction{ qtAwesome()->icon(fa::wifi), "Connect to server", this };
+  connect(connectToServerAct, SIGNAL(triggered()), this, SLOT(connectToServer()));
+  exitAct = new QAction{ "Exit" };
+  connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
 
   networkView = new NetworkView;
   networkView->setModel(&networkModel);
@@ -33,6 +40,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   auto buttonAddNode = new QPushButton("Add node");
   connect(buttonAddNode, SIGNAL(released()), this, SLOT(addNode()));
 
+  // menu
+  auto fileMenu = menuBar()->addMenu("&File");
+  fileMenu->addAction(connectToServerAct);
+  fileMenu->addSeparator();
+  fileMenu->addAction(exitAct);
+
+
   // layout
   auto layout = new QVBoxLayout;
   // layout->addWidget(listView);
@@ -44,6 +58,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   // setup central widget
   setCentralWidget(new QWidget);
   centralWidget()->setLayout(layout);
+
+  // status bar
+  connectionStatus = new QLabel{ "Status: Disconnected" };
+  statusBar()->addPermanentWidget(connectionStatus);
+}
+
+void MainWindow::exit() {
+
+}
+
+void MainWindow::connectToServer() {
+	ui::ConnectDialog dialog;
+	dialog.exec();
 }
 
 void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
@@ -51,11 +78,11 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
   auto selectedNodes = networkView->selectedNodes();
   if (!selectedNodes.empty()) {
     QMenu contextMenu;
-    contextMenu.addAction(deleteNodeAction);
+    contextMenu.addAction(deleteNodeAct);
     contextMenu.exec(networkView->mapToGlobal(pos));
   } else {
     QMenu contextMenu;
-    contextMenu.addAction(addNodeAction);
+    contextMenu.addAction(addNodeAct);
     contextMenu.exec(networkView->mapToGlobal(pos));
   }
 }

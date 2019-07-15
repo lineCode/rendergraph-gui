@@ -4,6 +4,7 @@
 #include "standardnetworkmodel.hpp"
 #include <QListView>
 #include <QMainWindow>
+#include <QLabel>
 
 namespace ui {
 
@@ -14,6 +15,8 @@ public:
   ~MainWindow();
 
 private Q_SLOTS:
+	void connectToServer();
+	void exit();
   void scaleUp();
   void scaleDown();
   void addNode();
@@ -23,10 +26,14 @@ private Q_SLOTS:
                      QPersistentModelIndex toConnector);
 
 private:
-  QAction *deleteNodeAction;
-  QAction *addNodeAction;
+  QAction* connectToServerAct;
+  QAction *deleteNodeAct;
+  QAction *addNodeAct;
+  QAction* exitAct;
+
   QListView *listView;
   NetworkView *networkView;
+  QLabel* connectionStatus;
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
 };

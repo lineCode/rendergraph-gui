@@ -1,204 +1,87 @@
-#include <memory>
-#include <cstdint>
-#include <vector>
-#include <map>
+#include "util/jsonreader.hpp"
+#include "util/jsonwriter.hpp"
 #include "util/stringref.hpp"
+#include <cstdint>
+#include <memory>
+#include <sstream>
+#include <vector>
 
 namespace client {
 
-class RendergraphClientPrivate;
-
-// Requests to the server:
-// - Create a node, returns a node ID
-
-using NodeId = uint64_t;
-
 enum class Status {
-	Success = 0,
-	UnknownMethod = 1,
-	InvalidParameter = 2,	
+  Success = 0,
+  UnknownMethod = 1,
+  InvalidParameter = 2,
 };
 
+namespace method {
 
-namespace methods {
-	struct CreateNode {
-		// No params
-		
-		struct Reply {
-			std::vector<NodeId> createdNodeIds;
-		};
-
-		ErrorCode send(RendergraphClient& client, ) {
-			Message msg;
-			msg.setParam("param", ...);
-			client.send(msg);
-
-			auto reply = msg.send();
-		}
-
-	};
-
-	// methods::CreateNode m;
-	// m.param1 = ...;
-	// m.send(client);	
-	//
-
-}
-
-// Object => serialized object tree, actual format is abstract: can be toml or json or whatever is needed
-// Client takes an object and builds a message out of it
-// Can subclass object to create specialized object types, with custom get methods (instead of copying the data to a struct)
-
-
-class Value {
-public:
-	enum class Type {
-		Empty,
-		Int,
-		Real,
-		String,
-		Object,
-		Array,
-		IntArray,
-		RealArray,
-	};
-
-	Value() : ty{ Type::Object }
-	{}
-
-	Value(util::StringRef str) : ty{ Type::String }  {
-		v.stringVal.len = str.len;
-		v.stringVal.data = new char[str.len];
-		std::memcpy(v.stringVal.data, str.ptr, str.len);
-	}
-
-	Value(double doubleVal) : ty{ Type::Real } {
-		v.doubleVal = doubleVal;
-	}
-
-	Value(int64_t intVal) : ty{ Type::Int } {
-		v.intVal = intVal;
-	}
-
-	~Value() {
-		switch (ty)
-		{
-		case Type::Empty:
-		case Type::Int:
-		case Type::Real:
-			break;
-		case Type::String:
-			delete[] v.stringVal.data;
-			break;
-		case Type::Object:
-			delete v.objVal;
-			break;
-		case Type::Array:
-			delete[] v.arrayVal.data;
-			break;
-		case Type::IntArray:
-			delete[] v.intArrayVal.data;
-			break;
-		case Type::RealArray:
-			delete[] v.realArrayVal.data;
-			break;
-		default:
-			break;
-		}
-	}
-
-private:
-	struct StringData {
-		size_t len;
-		char* data;
-	};
-
-	struct RealArrayData {
-		size_t len;
-		double* data;
-	};
-
-	struct IntArrayData {
-		size_t len;
-		int64_t* data;
-	};
-
-	struct Object {
-		std::map<std::string, Value> values;
-	};
-
-	struct ArrayData {
-		size_t len;
-		Value* data;
-	};
-
-	union Inner {
-		double doubleVal;
-		int64_t intVal;
-		StringData stringVal;
-		ArrayData arrayVal;
-		Object* objVal;
-		RealArrayData realArrayVal;
-		IntArrayData intArrayVal;
-	};
-
-	Type ty;
-	Inner v;
+enum class MethodCode {
+  GetVersion = 1,
 };
 
-
-class Message {
-public:
-	Message();
-	~Message();
-
-	// Sets the value of a parameter to the given integer.
-	void setParam(const char* name, int64_t v);
-	// Sets the value of a parameter to the given floating-point value.
-	void setParam(const char* name, double v);
-	// Sets the value of a parameter to a copy of the given string.
-	void setParam(const char* name, const char* str);
-
-	// Sets the value of a parameter to a copy of the given array of integer values.
-	// This copies the data, so the array can be freed afterwards.
-	void setArrayParam(const char* name, int count, const int64_t * v);
-	// Sets the value of a parameter to a copy of the given array of floating-point values.
-	// This copies the data, so the array can be freed afterwards.
-	void setArrayParam(const char* name, int count, const double* v);
-	// Sets the value of a parameter to a copy of the given array of strings.
-	// This copies the data, so the array can be freed afterwards.
-	void setArrayParam(const char* name, int count, const char* const * strs);
-
-	// Gets the value of a parameter, or throws an exception if there is no
-	// such parameter in the message or it is not of the expected type.
-	Status paramDouble(const char* name, double& out);
-	Status paramInt(const char* name, int64_t& out);
-	// The returned string lives as long as the message is not modified by a set* method.
-	Status paramString(const char* name, std::string& out);
-
-	Status paramType(const char* name, ParamType )
-
-	const double* paramDoubleArray(const char* name, size_t& arraysize);
-	const int64_t* paramIntArray(const char* name, size_t& arraysize);
-	const char* paramStringArray(const char* name, size_t& arraysize);
-
-	// array of objects?
-
-private:
-	class Private;
-	std::unique_ptr<Private> d;
+struct ReplyBase {
+  Status status;
+  std::string errorMessage;
 };
+
+struct CreateNode {
+  struct Reply : ReplyBase {
+    std::string name;
+    void read(util::JsonReader &i);
+  };
+
+  void write(util::JsonWriter &o);
+};
+
+template <MethodCode M> struct MethodBase {
+  static constexpr MethodCode CODE = M;
+};
+
+struct GetVersion : MethodBase<MethodCode::GetVersion> {
+  struct Reply : ReplyBase {
+    int version;
+    void read(util::JsonReader &i) { version = i.nextInt(); }
+  };
+
+  void write(util::JsonWriter& o) { 
+	  o.beginObject();
+	  o.endObject();
+  }
+};
+
+} // namespace method
 
 class RendergraphClient {
 public:
-  RendergraphClient(const char *address);
-  ~RendergraphClient();
+	RendergraphClient();
+	RendergraphClient(util::StringRef address);
+	~RendergraphClient();
 
-  // Sends a message.
-  Status send(const Message& msg, Message& reply);
+	bool connect(util::StringRef address);
+	bool isConnected() const;
 
+  // Sends a message consisting of the given message body.
+  //
+  // Throws an exception if the message could not be sent, or a reply could
+  // not be received.
+  template <typename M> auto send(const M &m) -> typename M::Reply {
+    std::ostringstream ss;
+    util::JsonWriter o{ss};
+    o.beginObject();
+    o.name("method");
+    o.value(static_cast<int64_t>(M::CODE));
+    o.name("data");
+    m.write(o);
+    o.endObject();
+    auto str = ss.str();
+    sendRaw(util::StringRef{str.c_str(), str.size()});
+  }
+
+  std::string sendRaw(util::StringRef str);
 
 private:
+	struct RendergraphClientPrivate;
   std::unique_ptr<RendergraphClientPrivate> d_;
 };
 

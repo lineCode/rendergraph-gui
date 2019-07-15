@@ -15,6 +15,7 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(ZeroMQ CONFIG REQUIRED)
 find_package(msgpack CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)
+find_package(RapidJSON CONFIG REQUIRED)
 
 #==========================================================
 # Sources
@@ -22,14 +23,18 @@ file(GLOB SOURCES
     src/*.cpp
     src/ui/*.cpp 
     src/ui/QtAwesome/*.cpp
+    src/util/*.cpp
     src/client/*.cpp)
 file(GLOB HEADERS 
     src/*.hpp
     src/ui/*.hpp 
+    src/util/*.hpp
     src/ui/QtAwesome/*.hpp
     src/client/*.hpp)
 set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
+target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
 target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq msgpackc-cxx cppzmq)
+
