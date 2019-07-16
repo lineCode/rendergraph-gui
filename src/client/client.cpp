@@ -1,59 +1,8 @@
 #include "client/client.hpp"
 #include <zmq.hpp>
+#include <util/log.hpp>
 
 namespace client {
-namespace {
-template <typename Reply, typename F>
-void parseStdReply(util::JsonReader &reader, Reply &reply, F callback) {
-  reader.beginObject();
-  while (!reader.hasNext()) {
-    auto k = reader.nextName();
-    if (k == "status") {
-      reply.status = static_cast<Status>(reader.nextInt());
-    } else if (k == "errorMessage") {
-      reply.errorMessage = reader.nextString();
-    } else if (k == "data") {
-      callback(reader, reply);
-    }
-  }
-  reader.endObject();
-}
-} // namespace
-
-namespace method {
-
-//------------ CREATE NODE
-/*CreateNodeReply::CreateNodeReply(util::JsonReader &r) {
-  parseStdReply(r, *this, [](util::JsonReader &r, CreateNodeReply &this_) {
-    r.beginObject();
-    while (r.hasNext()) {
-      auto k = r.nextName();
-      if (k == "name") {
-        this_.name = r.nextString();
-      }
-      if (k == "inputConnectors") {
-        r.beginArray();
-        while (r.hasNext()) {
-          r.beginObject();
-          while (r.hasNext()) {
-            if (k == "id") {
-              // TODO
-            } else if (k == "name") {
-              // TODO
-            }
-          }
-          r.endObject();
-        }
-        r.endArray();
-      } else {
-        r.skipValue();
-      }
-    }
-    r.endObject();
-  });
-}*/
-
-} // namespace method
 
 struct RendergraphClient::RendergraphClientPrivate {
 
@@ -80,6 +29,7 @@ RendergraphClient::~RendergraphClient()
 bool RendergraphClient::connect(util::StringRef address)
 {
 	std::string addr{ address.ptr, address.len };
+	util::log("[RendergraphClient::connect] endpoint={}", addr.c_str());
 	d_->socket.connect(addr.c_str());
 	return true;
 }

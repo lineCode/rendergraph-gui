@@ -8,6 +8,7 @@ namespace util {
 class JsonWriter {
 public:
   JsonWriter(std::ostream &out);
+  ~JsonWriter();
 
   void beginObject();
   void endObject();

@@ -2,6 +2,7 @@
 #include "imageview.hpp"
 #include "networkview.hpp"
 #include "standardnetworkmodel.hpp"
+#include "client/client.hpp"
 #include <QListView>
 #include <QMainWindow>
 #include <QLabel>
@@ -36,6 +37,8 @@ private:
   QLabel* connectionStatus;
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
+  
+  std::unique_ptr<client::RendergraphClient> client_;
 };
 
 } // namespace ui

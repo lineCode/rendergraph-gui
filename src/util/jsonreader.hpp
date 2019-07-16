@@ -14,6 +14,7 @@ public:
 
   JsonReader();
   JsonReader(const util::StringRef &src);
+  ~JsonReader();
 
   int64_t nextInt();
   double nextReal();

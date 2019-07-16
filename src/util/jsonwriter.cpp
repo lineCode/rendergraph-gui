@@ -25,6 +25,8 @@ struct JsonWriter::JsonWriterPrivate {
 JsonWriter::JsonWriter(std::ostream &out)
     : d{std::make_unique<JsonWriterPrivate>(out)} {}
 
+JsonWriter::~JsonWriter() {}
+
 void JsonWriter::beginObject() { d->beginObject(); }
 void JsonWriter::endObject() { d->endObject(); }
 void JsonWriter::beginArray() { d->beginArray(); }

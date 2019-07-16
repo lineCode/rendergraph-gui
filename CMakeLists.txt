@@ -18,6 +18,10 @@ find_package(cppzmq CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
 
 #==========================================================
+# Vendored dependencies
+add_subdirectory(ext/fmt-5.3.0)
+
+#==========================================================
 # Sources
 file(GLOB SOURCES 
     src/*.cpp
@@ -36,5 +40,5 @@ set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
 target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
-target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq msgpackc-cxx cppzmq)
+target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq msgpackc-cxx cppzmq fmt-header-only)
 

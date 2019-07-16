@@ -122,7 +122,7 @@ struct JsonReader::JsonReaderPrivate {
   void expectKey(std::string &val) {
     if (handler.last != JsonToken::Key)
       throw TypeError{};
-    val = std::move(handler.stringVal);
+    val = std::move(handler.lastKey);
     next();
   }
 
@@ -164,7 +164,7 @@ struct JsonReader::JsonReaderPrivate {
   }
 
   bool hasNext() {
-    return handler.last != JsonToken::EndArray ||
+    return handler.last != JsonToken::EndArray &&
            handler.last != JsonToken::EndObject;
   }
 
@@ -198,6 +198,8 @@ JsonReader::JsonReader() : JsonReader("") {}
 
 JsonReader::JsonReader(const StringRef &src)
     : d{std::make_unique<JsonReaderPrivate>(src.ptr)} {}
+
+JsonReader::~JsonReader() {}
 
 bool JsonReader::hasNext() { return d->hasNext(); }
 

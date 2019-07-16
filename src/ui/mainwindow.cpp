@@ -1,5 +1,6 @@
 #include "ui/mainwindow.hpp"
 #include "ui/connectdialog.hpp"
+#include "util/log.hpp"
 #include "QtAwesome/QtAwesome.h"
 #include <QAction>
 #include <QMenu>
@@ -71,6 +72,24 @@ void MainWindow::exit() {
 void MainWindow::connectToServer() {
 	ui::ConnectDialog dialog;
 	dialog.exec();
+
+	QString endpoint;
+	switch (dialog.transport()) {
+	case 0:
+		endpoint.append("tcp://");
+			break;
+	case 1:
+	default:
+		endpoint.append("ipc://");
+		break;
+	}
+
+	endpoint.append(dialog.address());
+	auto endpointStr = endpoint.toStdString();
+	client_ = std::make_unique<client::RendergraphClient>(util::StringRef{ endpointStr.c_str(), endpointStr.size() });
+
+	auto versionReply = client_->send(client::method::GetVersion{});
+	util::log("versionReply status={} version={}", static_cast<int>(versionReply.status), versionReply.version);
 }
 
 void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
