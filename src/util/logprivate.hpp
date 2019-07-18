@@ -3,15 +3,15 @@
 #include <QPlainTextEdit>
 
 namespace util {
-	class LogWindow : public QWidget {
-		Q_OBJECT
-	public:
-		LogWindow(QWidget* parent = nullptr);
-		virtual ~LogWindow();
+class LogWindow : public QWidget {
+  Q_OBJECT
+public:
+  LogWindow(QWidget *parent = nullptr);
+  virtual ~LogWindow();
 
-		void append(const QString& text);
+  void append(const QString &text);
 
-	private:
-		QPlainTextEdit* logText_;
-	};
-}
+private:
+  QPlainTextEdit *logText_;
+};
+} // namespace util

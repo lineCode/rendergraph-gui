@@ -1,13 +1,13 @@
 #include "ui/mainwindow.hpp"
+#include "QtAwesome/QtAwesome.h"
 #include "ui/connectdialog.hpp"
 #include "util/log.hpp"
-#include "QtAwesome/QtAwesome.h"
 #include <QAction>
 #include <QMenu>
+#include <QMenuBar>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QVBoxLayout>
-#include <QMenuBar>
 
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -16,9 +16,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connect(deleteNodeAct, SIGNAL(triggered()), this,
           SLOT(deleteSelectedNodes()));
   addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
-  connectToServerAct = new QAction{ qtAwesome()->icon(fa::wifi), "Connect to server", this };
-  connect(connectToServerAct, SIGNAL(triggered()), this, SLOT(connectToServer()));
-  exitAct = new QAction{ "Exit" };
+  connectToServerAct =
+      new QAction{qtAwesome()->icon(fa::wifi), "Connect to server", this};
+  connect(connectToServerAct, SIGNAL(triggered()), this,
+          SLOT(connectToServer()));
+  exitAct = new QAction{"Exit"};
   connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
 
   networkView = new NetworkView;
@@ -47,7 +49,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   fileMenu->addSeparator();
   fileMenu->addAction(exitAct);
 
-
   // layout
   auto layout = new QVBoxLayout;
   // layout->addWidget(listView);
@@ -61,35 +62,39 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   centralWidget()->setLayout(layout);
 
   // status bar
-  connectionStatus = new QLabel{ "Status: Disconnected" };
+  connectionStatus = new QLabel{"Status: Disconnected"};
   statusBar()->addPermanentWidget(connectionStatus);
 }
 
-void MainWindow::exit() {
-
-}
+void MainWindow::exit() {}
 
 void MainWindow::connectToServer() {
-	ui::ConnectDialog dialog;
-	dialog.exec();
+  ui::ConnectDialog dialog;
+  dialog.exec();
 
-	QString endpoint;
-	switch (dialog.transport()) {
-	case 0:
-		endpoint.append("tcp://");
-			break;
-	case 1:
-	default:
-		endpoint.append("ipc://");
-		break;
-	}
+  QString endpoint;
+  switch (dialog.transport()) {
+  case 0:
+    endpoint.append("tcp://");
+    break;
+  case 1:
+  default:
+    endpoint.append("ipc://");
+    break;
+  }
 
-	endpoint.append(dialog.address());
-	auto endpointStr = endpoint.toStdString();
-	client_ = std::make_unique<client::RendergraphClient>(util::StringRef{ endpointStr.c_str(), endpointStr.size() });
-
-	auto versionReply = client_->send(client::method::GetVersion{});
-	util::log("versionReply status={} version={}", static_cast<int>(versionReply.status), versionReply.version);
+  endpoint.append(dialog.address());
+  auto endpointStr = endpoint.toStdString();
+  client_ = std::make_unique<client::RendergraphClient>(
+      util::StringRef{endpointStr.c_str(), endpointStr.size()});
+  client_->setTimeoutMs(250);
+  try {
+    auto versionReply = client_->send(client::method::GetVersion{});
+    util::log("versionReply status={} version={}",
+              static_cast<int>(versionReply.status), versionReply.version);
+  } catch (client::RendergraphClient::TimeoutError) {
+    util::log("Timeout when establishing connection");
+  }
 }
 
 void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {

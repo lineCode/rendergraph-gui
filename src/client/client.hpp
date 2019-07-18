@@ -74,10 +74,17 @@ struct GetVersion : MethodBase {
 
 class RendergraphClient {
 public:
+	class TimeoutError : public std::exception {
+	public:
+		TimeoutError() = default;
+		TimeoutError(const char *message) : std::exception{ message } {}
+	};
+
   RendergraphClient();
   RendergraphClient(util::StringRef address);
   ~RendergraphClient();
 
+  void setTimeoutMs(int timeoutMs);
   bool connect(util::StringRef address);
   bool isConnected() const;
 

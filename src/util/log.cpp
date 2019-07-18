@@ -8,9 +8,9 @@ namespace util {
 
 LogWindow::LogWindow(QWidget *parent) : QWidget{parent} {
   logText_ = new QPlainTextEdit;
-  //logText_->set
 
   QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+  //fixedFont.setPointSizeF(14.0);
   logText_->setFont(fixedFont);
   logText_->setReadOnly(true);
 
@@ -19,6 +19,7 @@ LogWindow::LogWindow(QWidget *parent) : QWidget{parent} {
 
   setLayout(layout);
   setWindowTitle("Log output");
+  setGeometry(0, 0, 800, 450);
 }
 
 LogWindow::~LogWindow() {}
@@ -38,7 +39,6 @@ static LogWindow* getLogWindow() {
 void util::log(const char *msg) {
 	auto w = getLogWindow();
 	w->append(msg);
-	//w->append("\n");
 	w->show();
 }
 
