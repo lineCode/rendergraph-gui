@@ -37,7 +37,7 @@ private:
   QLabel* connectionStatus;
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
-  
+  bool connected_ = false;  
   std::unique_ptr<client::RendergraphClient> client_;
 };
 

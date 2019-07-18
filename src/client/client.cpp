@@ -32,6 +32,10 @@ bool RendergraphClient::connect(util::StringRef address) {
   return true;
 }
 
+bool RendergraphClient::isConnected() const {
+	return d_->socket.connected();
+}
+ 
 void RendergraphClient::setTimeoutMs(int timeoutMs) {
 	d_->socket.setsockopt(ZMQ_SNDTIMEO, timeoutMs);
 	d_->socket.setsockopt(ZMQ_RCVTIMEO, timeoutMs);

@@ -36,7 +36,6 @@ public:
   }
 
   int transport() const { return transport_->currentIndex(); }
-
   QString address() const { return address_->text(); }
 
 private:

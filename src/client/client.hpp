@@ -8,7 +8,7 @@
 
 namespace client {
 
-enum class Status: int {
+enum class Status : int {
   Success = 0,
   UnknownMethod = 1,
   InvalidParameter = 2,
@@ -27,10 +27,9 @@ void parseStdReply(util::JsonReader &reader, Reply &reply) {
       reply.errorMessage = reader.nextString();
     } else if (k == "data") {
       reply.read(reader);
-	}
-	else {
-		reader.skipValue();
-	}
+    } else {
+      reader.skipValue();
+    }
   }
   reader.endObject();
 }
@@ -53,11 +52,10 @@ struct CreateNode {
   void write(util::JsonWriter &o) const;
 };
 
-struct MethodBase {
-};
+struct MethodBase {};
 
 struct GetVersion : MethodBase {
-	static constexpr const char* NAME = "GetVersion";
+  static constexpr const char *NAME = "GetVersion";
 
   struct Reply : ReplyBase {
     int version;
@@ -74,11 +72,11 @@ struct GetVersion : MethodBase {
 
 class RendergraphClient {
 public:
-	class TimeoutError : public std::exception {
-	public:
-		TimeoutError() = default;
-		TimeoutError(const char *message) : std::exception{ message } {}
-	};
+  class TimeoutError : public std::exception {
+  public:
+    TimeoutError() = default;
+    TimeoutError(const char *message) : std::exception{message} {}
+  };
 
   RendergraphClient();
   RendergraphClient(util::StringRef address);

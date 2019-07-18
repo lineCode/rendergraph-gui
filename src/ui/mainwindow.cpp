@@ -92,6 +92,7 @@ void MainWindow::connectToServer() {
     auto versionReply = client_->send(client::method::GetVersion{});
     util::log("versionReply status={} version={}",
               static_cast<int>(versionReply.status), versionReply.version);
+	// got a valid reply
   } catch (client::RendergraphClient::TimeoutError) {
     util::log("Timeout when establishing connection");
   }

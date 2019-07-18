@@ -13,7 +13,6 @@ set(CMAKE_AUTORCC ON)
 # Dependencies
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(ZeroMQ CONFIG REQUIRED)
-find_package(msgpack CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
 
@@ -40,5 +39,5 @@ set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
 target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
-target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq msgpackc-cxx cppzmq fmt-header-only)
+target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq cppzmq fmt-header-only)
 
