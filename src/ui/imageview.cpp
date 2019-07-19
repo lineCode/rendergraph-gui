@@ -1,5 +1,5 @@
-#include "imageview.hpp"
-#include "imageviewprivate.hpp"
+#include "imageview.h"
+#include "imageviewprivate.h"
 #include <QAction>
 #include <QMenu>
 #include <QPaintEvent>

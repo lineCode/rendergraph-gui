@@ -1,4 +1,4 @@
-#include "networkview.hpp"
+#include "networkview.h"
 #include "QtAwesome/QtAwesome.h"
 #include <QAction>
 #include <QDebug>

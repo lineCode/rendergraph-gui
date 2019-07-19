@@ -1,5 +1,5 @@
-#include "util/jsonreader.hpp"
-#include "util/value.hpp"
+#include "util/jsonreader.h"
+#include "util/value.h"
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/reader.h>
 

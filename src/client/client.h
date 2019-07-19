@@ -1,6 +1,6 @@
-#include "util/jsonreader.hpp"
-#include "util/jsonwriter.hpp"
-#include "util/stringref.hpp"
+#include "util/jsonreader.h"
+#include "util/jsonwriter.h"
+#include "util/stringref.h"
 #include <cstdint>
 #include <memory>
 #include <sstream>
@@ -59,7 +59,7 @@ struct GetVersion : MethodBase {
 
   struct Reply : ReplyBase {
     int version;
-    void read(util::JsonReader &i) { version = i.nextInt(); }
+    void read(util::JsonReader &i) { version = (int)i.nextInt(); }
   };
 
   void write(util::JsonWriter &o) const {

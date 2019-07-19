@@ -1,5 +1,5 @@
 #pragma once
-#include "abstractnetworkmodel.hpp"
+#include "abstractnetworkmodel.h"
 #include <memory>
 #include <unordered_map>
 #include <algorithm>

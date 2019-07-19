@@ -1,4 +1,4 @@
-#include "standardnetworkmodel.hpp"
+#include "standardnetworkmodel.h"
 
 static const int INPUT_CONNECTOR_COLUMN = 1;
 static const int OUTPUT_CONNECTOR_COLUMN = 2;

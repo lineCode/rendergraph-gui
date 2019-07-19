@@ -1,8 +1,8 @@
 #pragma once
-#include "imageview.hpp"
-#include "networkview.hpp"
-#include "standardnetworkmodel.hpp"
-#include "client/client.hpp"
+#include "imageview.h"
+#include "networkview.h"
+#include "standardnetworkmodel.h"
+#include "client/client.h"
 #include <QListView>
 #include <QMainWindow>
 #include <QLabel>

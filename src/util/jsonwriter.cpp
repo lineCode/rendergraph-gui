@@ -1,4 +1,4 @@
-#include "util/jsonwriter.hpp"
+#include "util/jsonwriter.h"
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/writer.h>

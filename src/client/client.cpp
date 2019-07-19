@@ -1,8 +1,8 @@
 // include zmq first because WinSock2.h must be included before Windows.h (other headers may include Windows.h)
 #include <zmq.hpp>		
 
-#include "client/client.hpp"
-#include <util/log.hpp>
+#include "client/client.h"
+#include "util/log.h"
 
 namespace client {
 

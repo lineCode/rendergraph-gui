@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.10)
 project(rendergraph_gui)
 
 #==========================================================
@@ -15,6 +15,7 @@ find_package(Qt5 COMPONENTS Widgets REQUIRED)
 find_package(ZeroMQ CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
+find_package(OpenGL REQUIRED)
 
 #==========================================================
 # Vendored dependencies
@@ -27,17 +28,23 @@ file(GLOB SOURCES
     src/ui/*.cpp 
     src/ui/QtAwesome/*.cpp
     src/util/*.cpp
+    src/render/*.cpp
+    src/gfx/*.cpp
+    src/gfxopengl/*.cpp
     src/client/*.cpp)
 file(GLOB HEADERS 
-    src/*.hpp
-    src/ui/*.hpp 
-    src/util/*.hpp
-    src/ui/QtAwesome/*.hpp
-    src/client/*.hpp)
+    src/*.h
+    src/ui/*.h 
+    src/util/*.h
+    src/render/*.h
+    src/gfx/*.h
+    src/gfxopengl/*.h
+    src/ui/QtAwesome/*.h
+    src/client/*.h)
 set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
 target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
-target_link_libraries(rendergraph_gui PRIVATE Qt5::Widgets libzmq cppzmq fmt-header-only)
+target_link_libraries(rendergraph_gui PRIVATE OpenGL::GL Qt5::Widgets libzmq cppzmq fmt-header-only)
 

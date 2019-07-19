@@ -1,7 +1,7 @@
-#include "ui/mainwindow.hpp"
+#include "ui/mainwindow.h"
 #include "QtAwesome/QtAwesome.h"
-#include "ui/connectdialog.hpp"
-#include "util/log.hpp"
+#include "ui/connectdialog.h"
+#include "util/log.h"
 #include <QAction>
 #include <QMenu>
 #include <QMenuBar>

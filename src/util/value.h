@@ -1,6 +1,6 @@
 #pragma once
-#include "util/arrayref.hpp"
-#include "util/stringref.hpp"
+#include "util/arrayref.h"
+#include "util/stringref.h"
 #include <cstdint>
 #include <map>
 #include <stdexcept>

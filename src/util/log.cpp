@@ -1,5 +1,5 @@
-#include "log.hpp"
-#include "logprivate.hpp"
+#include "log.h"
+#include "logprivate.h"
 #include <QPlainTextEdit>
 #include <QVBoxLayout>
 #include <QFontDatabase>

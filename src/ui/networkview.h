@@ -1,5 +1,5 @@
 #pragma once
-#include "abstractnetworkmodel.hpp"
+#include "abstractnetworkmodel.h"
 #include <QAbstractItemModel>
 #include <QGraphicsLineItem>
 #include <QGraphicsLinearLayout>

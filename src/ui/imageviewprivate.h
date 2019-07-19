@@ -1,5 +1,5 @@
 #pragma once
-#include "imageview.hpp"
+#include "imageview.h"
 #include <QFrame>
 
 //=================================================================================
