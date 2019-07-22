@@ -21,33 +21,33 @@ static GLFormatInfo glfmt_rgba8_unorm_srgb{gl::SRGB8_ALPHA8, gl::RGBA,
 static GLFormatInfo glfmt_rg16_float{gl::RG16F, gl::RG, gl::FLOAT, 2, 4};
 static GLFormatInfo glfmt_rg16_sint{gl::RG16I, gl::RG, gl::INT, 2, 4};
 
-const GLFormatInfo &getGLImageFormatInfo(gfx::ImageFormat fmt) {
+const GLFormatInfo &getGLImageFormatInfo(gfx::Format fmt) {
   switch (fmt) {
-  case gfx::ImageFormat::R32G32B32A32_UINT:
+  case gfx::Format::R32G32B32A32_UINT:
     return glfmt_rgba32_uint;
-  case gfx::ImageFormat::R16G16B16A16_SFLOAT:
+  case gfx::Format::R16G16B16A16_SFLOAT:
     return glfmt_rgba16_float;
-  case gfx::ImageFormat::R8G8B8A8_UNORM:
+  case gfx::Format::R8G8B8A8_UNORM:
     return glfmt_rgba8_unorm;
-  case gfx::ImageFormat::R8G8B8A8_SNORM:
+  case gfx::Format::R8G8B8A8_SNORM:
     return glfmt_r8_unorm;
-  case gfx::ImageFormat::R32_SFLOAT:
+  case gfx::Format::R32_SFLOAT:
     return glfmt_r32_float;
-  case gfx::ImageFormat::R32G32_SFLOAT:
+  case gfx::Format::R32G32_SFLOAT:
     return glfmt_rg32_float;
-  case gfx::ImageFormat::R32G32B32A32_SFLOAT:
+  case gfx::Format::R32G32B32A32_SFLOAT:
     return glfmt_rgba32_float;
-  case gfx::ImageFormat::D32_SFLOAT:
+  case gfx::Format::D32_SFLOAT:
     return glfmt_depth32_float;
-  case gfx::ImageFormat::A2R10G10B10_UNORM_PACK32:
+  case gfx::Format::A2R10G10B10_UNORM_PACK32:
     return glfmt_argb_10_10_10_2_unorm;
-  case gfx::ImageFormat::R8G8B8A8_SRGB:
+  case gfx::Format::R8G8B8A8_SRGB:
     return glfmt_rgba8_unorm_srgb;
-  case gfx::ImageFormat::R16G16_SFLOAT:
+  case gfx::Format::R16G16_SFLOAT:
     return glfmt_rg16_float;
-  case gfx::ImageFormat::R16G16_SINT:
+  case gfx::Format::R16G16_SINT:
     return glfmt_rg16_sint;
-  case gfx::ImageFormat::A2R10G10B10_SNORM_PACK32:
+  case gfx::Format::A2R10G10B10_SNORM_PACK32:
   // return glfmt_argb_10_10_10_2_snorm;   // there is no signed version of this
   // format in OpenGL
   default:

@@ -3,7 +3,7 @@
 #include <cstdlib>
 
 namespace gfx {
-enum class ImageFormat {
+enum class Format {
   R32G32B32A32_SFLOAT = 0,
   R16G16B16A16_SFLOAT,
   R32G32_SFLOAT,
@@ -86,6 +86,6 @@ struct ImageFormatInfo {
   uint32_t numChannels;
 };
 
-const ImageFormatInfo &getImageFormatInfo(ImageFormat fmt);
+const ImageFormatInfo &getImageFormatInfo(Format fmt);
 
 } // namespace gfx

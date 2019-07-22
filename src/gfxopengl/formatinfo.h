@@ -1,10 +1,10 @@
 #pragma once
-#include "gfx/imageformat.h"
+#include "gfx/format.h"
 #include "gfxopengl/glcore45.h"
 
 namespace gfxopengl {
 /// Structure containing information about the OpenGL internal format
-/// corresponding to an 'ImageFormat'
+/// corresponding to an 'Format'
 struct GLFormatInfo {
   gl::GLenum internalFormat; //< Corresponding internal format
   gl::GLenum externalFormat; //< Preferred external format for uploads/reads
@@ -14,7 +14,7 @@ struct GLFormatInfo {
 };
 
 /// Returns information about the OpenGL internal format corresponding to the
-/// specified ImageFormat
-const GLFormatInfo &getGLImageFormatInfo(gfx::ImageFormat fmt);
+/// specified Format
+const GLFormatInfo &getGLImageFormatInfo(gfx::Format fmt);
 
 } // namespace gfxopengl

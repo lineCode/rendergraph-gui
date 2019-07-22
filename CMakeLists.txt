@@ -43,6 +43,8 @@ file(GLOB HEADERS
     src/client/*.h)
 set(RESOURCES src/ui/QtAwesome/QtAwesome.qrc)
 
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/ FILES ${SOURCES} ${HEADERS} ${RESOURCES})
+
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
 target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})

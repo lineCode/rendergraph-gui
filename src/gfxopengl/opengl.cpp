@@ -1,9 +1,27 @@
-#include "opengl.h"
+#include "gfxopengl/opengl.h"
 #include "gfxopengl/glcore45.h"
+#include "gfxopengl/image.h"
 #include "util/log.h"
 #include <stdexcept>
 
 namespace gfxopengl {
+
+
+//////////////////////////////////////////////////////////////////////////////
+class Arena : public gfx::Arena {
+	friend class OpenGLGraphicsBackend;
+
+public:
+	// when deleting an arena, don't delete the objects right now as they may still be in use by the GPU
+	// instead, schedule for deletion once we know for sure that the 
+
+private:
+	OpenGLGraphicsBackend* backend_;
+	std::vector<std::unique_ptr<Image>> images;
+	std::vector<std::unique_ptr<Buffer>> buffers;
+	std::vector<std::unique_ptr<ArgumentBlock>> argBlocks;
+};
+
 
 static void APIENTRY debugCallback(gl::GLenum source, gl::GLenum type,
                                    gl::GLuint id, gl::GLenum severity,
@@ -30,6 +48,7 @@ static void getContextInfo(OpenGLContextInfo &out) {
                   &out.uniformBufferOffsetAlignment);
 }
 
+
 OpenGLGraphicsBackend::OpenGLGraphicsBackend() {
   if (!gl::sys::LoadFunctions()) {
     throw std::runtime_error{"could not load OpenGL function pointers"};
@@ -38,19 +57,8 @@ OpenGLGraphicsBackend::OpenGLGraphicsBackend() {
   setDebugCallback();
 }
 
-OpenGLGraphicsBackend::~OpenGLGraphicsBackend() {
-}
+OpenGLGraphicsBackend::~OpenGLGraphicsBackend() {}
 
-//////////////////////////////////////////////////////////////////////////////
-class Arena : public gfx::Arena {
-	friend class OpenGLGraphicsBackend;
-public:
-
-private:
-	std::vector<std::unique_ptr<Image>> images;
-	std::vector<std::unique_ptr<Buffer>> buffers;
-	std::vector<std::unique_ptr<ArgumentBlock>> argBlocks;
-};
 
 /*
 static void pushDebugGroup(const char *message) {

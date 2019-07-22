@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "util/bitflags.h"
-#include "gfx/imageformat.h"
+#include "gfx/format.h"
 
 namespace gfx {
 enum class ImageDimensions { Image1D, Image2D, Image2DArray, Image3D };
@@ -18,7 +18,7 @@ ENUM_BIT_FLAGS_OPERATORS(ImageUsageFlags)
 
 struct ImageDesc {
 	ImageDimensions dimensions;
-	ImageFormat format;
+	Format format;
 	int width;
 	int height;
 	int depth;

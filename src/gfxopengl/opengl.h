@@ -1,6 +1,5 @@
 #pragma once
 #include "gfx/gfx.h"
-#include "gfxopengl/glcore45.h"
 #include <vector>
 #include <cstdint>
 
@@ -12,33 +11,6 @@ struct OpenGLContextInfo {
 
 class Arena;
 
-class Image : public gfx::Image {
-	friend class OpenGLGraphicsBackend;
-public:
-	~Image();
-
-	gl::GLuint obj() const { return obj_;  }
-
-private:
-	gl::GLuint obj_;
-	int width_;
-	int height_;
-	int depth_;
-};
-
-class Buffer : public gfx::Buffer {
-	friend class OpenGLGraphicsBackend;
-public:
-	gl::GLuint obj() const { return obj_; }
-private:
-	gl::GLuint obj_;
-	size_t size_;
-};
-
-class ArgumentBlock : public gfx::ArgumentBlock {
-public:
-private:
-};
 
 class OpenGLGraphicsBackend : public gfx::GraphicsBackend {
 public:

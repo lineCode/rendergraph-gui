@@ -1,5 +1,6 @@
-#include "gfxopengl/opengl.h"
 #include "gfxopengl/formatinfo.h"
+#include "gfxopengl/opengl.h"
+#include "gfxopengl/image.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -7,47 +8,45 @@
 
 namespace gfxopengl {
 
-	using namespace gfx;
+using namespace gfx;
 
 gl::GLuint createTexture(const ImageDesc &d) {
   gl::GLenum target;
   switch (d.dimensions) {
   case ImageDimensions::Image1D:
-	  target = gl::TEXTURE_1D;
+    target = gl::TEXTURE_1D;
     break;
   case ImageDimensions::Image2D:
     if (d.sampleCount > 0) {
-		target = gl::TEXTURE_2D_MULTISAMPLE;
+      target = gl::TEXTURE_2D_MULTISAMPLE;
     } else {
-		target = gl::TEXTURE_2D;
+      target = gl::TEXTURE_2D;
     }
     break;
   case ImageDimensions::Image3D:
-	  target = gl::TEXTURE_3D;
+    target = gl::TEXTURE_3D;
     break;
   }
 
   const auto &glfmt = getGLImageFormatInfo(d.format);
   gl::GLuint tex_obj;
   gl::CreateTextures(target, 1, &tex_obj);
-  
+
   switch (target) {
   case gl::TEXTURE_1D:
-    gl::TextureStorage1D(tex_obj, d.mipMapCount, glfmt.internalFormat,
-                         d.width);
+    gl::TextureStorage1D(tex_obj, d.mipMapCount, glfmt.internalFormat, d.width);
     break;
   case gl::TEXTURE_2D:
-    gl::TextureStorage2D(tex_obj, d.mipMapCount, glfmt.internalFormat,
-                         d.width, d.height);
+    gl::TextureStorage2D(tex_obj, d.mipMapCount, glfmt.internalFormat, d.width,
+                         d.height);
     break;
   case gl::TEXTURE_2D_MULTISAMPLE:
-    gl::TextureStorage2DMultisample(tex_obj, d.sampleCount,
-                                    glfmt.internalFormat, d.width, d.height,
-                                    true);
+    gl::TextureStorage2DMultisample(
+        tex_obj, d.sampleCount, glfmt.internalFormat, d.width, d.height, true);
     break;
   case gl::TEXTURE_3D:
-    gl::TextureStorage3D(tex_obj, 1, glfmt.internalFormat, d.width,
-                         d.height, d.depth);
+    gl::TextureStorage3D(tex_obj, 1, glfmt.internalFormat, d.width, d.height,
+                         d.depth);
     break;
   }
   // set sensible defaults
@@ -60,7 +59,11 @@ gl::GLuint createTexture(const ImageDesc &d) {
   return tex_obj;
 }
 
-Image::~Image() { gl::DeleteTextures(1, &obj_); }
+
+Image::Image(const ImageDesc& desc) {
+	// TODO prefer allocating a renderbuffer if the intended usage is only render target
+	texObj_ = createTexture(desc);
+}
 
 /*
 void Texture::upload(void *src, int mipLevel) {
