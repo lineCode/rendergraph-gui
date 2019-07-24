@@ -10,18 +10,16 @@ namespace gfxopengl {
 
 using namespace gfx;
 
-gl::GLuint createTexture(const ImageDesc &d) {
-  gl::GLenum target;
+gl::GLuint createTexture(const ImageDesc &d, gl::GLenum& target) {
   switch (d.dimensions) {
   case ImageDimensions::Image1D:
     target = gl::TEXTURE_1D;
     break;
   case ImageDimensions::Image2D:
-    if (d.sampleCount > 0) {
+    if (d.sampleCount > 0) 
       target = gl::TEXTURE_2D_MULTISAMPLE;
-    } else {
+     else 
       target = gl::TEXTURE_2D;
-    }
     break;
   case ImageDimensions::Image3D:
     target = gl::TEXTURE_3D;
@@ -55,14 +53,7 @@ gl::GLuint createTexture(const ImageDesc &d) {
   gl::TextureParameteri(tex_obj, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE);
   gl::TextureParameteri(tex_obj, gl::TEXTURE_MIN_FILTER, gl::NEAREST);
   gl::TextureParameteri(tex_obj, gl::TEXTURE_MAG_FILTER, gl::NEAREST);
-  // fill desc
   return tex_obj;
-}
-
-
-Image::Image(const ImageDesc& desc) {
-	// TODO prefer allocating a renderbuffer if the intended usage is only render target
-	texObj_ = createTexture(desc);
 }
 
 /*

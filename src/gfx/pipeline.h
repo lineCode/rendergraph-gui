@@ -1,18 +1,31 @@
-
+#pragma once
 #include "gfx/format.h"
+#include "gfx/types.h"
 
 namespace gfx {
 
-	class ShaderModule;
-	class RenderPass;
-	class Signature;
 
 struct GraphicsShaderStages {
-  const ShaderModule *vertex = nullptr;
-  const ShaderModule *fragment = nullptr;
-  const ShaderModule *tessControl = nullptr;
-  const ShaderModule *tessEval = nullptr;
-  const ShaderModule *geometry = nullptr;
+  ShaderModuleHandle vertex = 0;
+  ShaderModuleHandle fragment = 0;
+  ShaderModuleHandle tessControl = 0;
+  ShaderModuleHandle tessEval = 0;
+  ShaderModuleHandle geometry = 0;
+};
+
+enum class PrimitiveTopology {
+  PointList,
+  LineList,
+  TriangleList,
+};
+
+enum class PolygonMode { Line, Fill };
+
+enum class CullModeFlags {
+  None = 0,
+  Front = 1,
+  Back = 2,
+  FrontAndBack = 3,
 };
 
 enum class LogicOp {
@@ -35,65 +48,65 @@ enum class LogicOp {
 };
 
 enum class CompareOp {
-	Never = 0,
-	Less = 1,
-	Equal = 2,
-	LessOrEqual = 3,
-	Greater = 4,
-	NotEqual = 5,
-	GreaterOrEqual = 6,
-	Always = 7,
+  Never = 0,
+  Less = 1,
+  Equal = 2,
+  LessOrEqual = 3,
+  Greater = 4,
+  NotEqual = 5,
+  GreaterOrEqual = 6,
+  Always = 7,
 };
 
 enum class StencilOp {
-	Keep = 0,
-	Zero = 1,
-	Replace = 2,
-	IncrementAndClamp = 3,
-	DecrementAndClamp = 4,
-	Invert = 5,
-	IncrementAndWrap = 6,
-	DecrementAndWrap = 7,
+  Keep = 0,
+  Zero = 1,
+  Replace = 2,
+  IncrementAndClamp = 3,
+  DecrementAndClamp = 4,
+  Invert = 5,
+  IncrementAndWrap = 6,
+  DecrementAndWrap = 7,
 };
 
 enum class BlendFactor {
-	Zero = 0,
-	One = 1,
-	SrcColor = 2,
-	OneMinusSrcColor = 3,
-	DstColor = 4,
-	OneMinusDstColor = 5,
-	SrcAlpha = 6,
-	OneMinusSrcAlpha = 7,
-	DstAlpha = 8,
-	OneMinusDstAlpha = 9,
-	ConstantColor = 10,
-	OneMinusConstantColor = 11,
-	ConstantAlpha = 12,
-	OneMinusConstantAlpha = 13,
-	SrcAlphaSaturate = 14,
-	Src1Color = 15,
-	OneMinusSrc1Color = 16,
-	Src1Alpha = 17,
-	OneMinusSrc1Alpha = 18,
+  Zero = 0,
+  One = 1,
+  SrcColor = 2,
+  OneMinusSrcColor = 3,
+  DstColor = 4,
+  OneMinusDstColor = 5,
+  SrcAlpha = 6,
+  OneMinusSrcAlpha = 7,
+  DstAlpha = 8,
+  OneMinusDstAlpha = 9,
+  ConstantColor = 10,
+  OneMinusConstantColor = 11,
+  ConstantAlpha = 12,
+  OneMinusConstantAlpha = 13,
+  SrcAlphaSaturate = 14,
+  Src1Color = 15,
+  OneMinusSrc1Color = 16,
+  Src1Alpha = 17,
+  OneMinusSrc1Alpha = 18,
 };
 
 enum class BlendOp {
-	Add = 0,
-	Subtract = 1,
-	ReverseSubtract = 2,
-	Min = 3,
-	Max = 4,
+  Add = 0,
+  Subtract = 1,
+  ReverseSubtract = 2,
+  Min = 3,
+  Max = 4,
 };
 
 struct StencilOpState {
-	StencilOp fail;
-	StencilOp pass;
-	StencilOp depthFail;
-	CompareOp compare;
-	uint32_t compareMask;
-	uint32_t writeMask;
-	uint32_t reference;
+  StencilOp fail;
+  StencilOp pass;
+  StencilOp depthFail;
+  CompareOp compare;
+  uint32_t compareMask;
+  uint32_t writeMask;
+  uint32_t reference;
 };
 
 struct DepthStencilState {
@@ -116,9 +129,18 @@ struct ColorBlendAttachmentState {
   BlendFactor srcAlpha;
   BlendFactor dstAlpha;
   BlendOp alphaOp;
-  // color_write_mask: ColorComponentFlags,
+
+  /// Comparison operator
+  constexpr bool operator==(const ColorBlendAttachmentState &rhs) const {
+    return (enabled == false && rhs.enabled == false) ||
+           (enabled == rhs.enabled && srcColor == rhs.srcColor &&
+            dstColor == rhs.dstColor && colorOp == rhs.colorOp &&
+            srcAlpha == rhs.srcAlpha && dstAlpha == rhs.dstAlpha &&
+            alphaOp == rhs.alphaOp);
+  }
 };
 
+struct ScissorState {};
 struct ViewportState {};
 struct RasterizationState {};
 struct MultisampleState {};
@@ -128,10 +150,10 @@ struct ColorBlendState {};
 struct GraphicsPipelineDesc {
   /// RenderPass that the pipeline conforms to. This pipeline will only be able
   /// to render to framebuffers created with this renderpass.
-  const RenderPass *renderPass;
+  RenderPassHandle renderPass;
   /// Signature of the pipeline. This pipeline will only accept argument blocks
   /// created with this signature.
-  const Signature *signature;
+  SignatureHandle signature;
   GraphicsShaderStages shaderStages;
   ViewportState viewportState;
   RasterizationState rasterizationState;

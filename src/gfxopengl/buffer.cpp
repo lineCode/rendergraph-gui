@@ -1,14 +1,14 @@
 #include "gfxopengl/buffer.h"
+#include "glcore45.h"
 
 namespace gfxopengl {
 
-Buffer::Buffer(size_t byteSize, gl::GLenum flags,
-               const void *initialData )
-    : flags_{flags}, byteSize_{byteSize} {
-  gl::GLuint buf_obj;
+gl::GLuint createBuffer(size_t byteSize, gl::GLenum flags, const void *initialData)
+{
+	gl::GLuint buf_obj;
   gl::CreateBuffers(1, &buf_obj);
   gl::NamedBufferStorage(buf_obj, byteSize, initialData, flags);
-  obj_ = buf_obj;
+  return buf_obj;
 }
 
 } // namespace gfxopengl

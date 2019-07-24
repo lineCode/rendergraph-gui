@@ -134,7 +134,7 @@ struct SignatureDesc {
   ///
   /// The length of this slice defines the number of _descriptors_ in a block.
   /// 
-  util::ArrayRef<const ResourceBinding *> shaderResources;
+  util::ArrayRef<ResourceBinding> shaderResources;
 
   /// Layouts of all vertex buffers in the block.
   ///

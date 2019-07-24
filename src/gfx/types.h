@@ -1,43 +1,52 @@
 #pragma once
+#include <cstdint>
 
 namespace gfx {
-class Buffer;
-class Image;
-struct SamplerDesc;
+
+	typedef uintptr_t ImageHandle;
+	typedef uintptr_t BufferHandle;
+	typedef uintptr_t ShaderModuleHandle;
+	typedef uintptr_t GraphicsPipelineHandle;
+	typedef uintptr_t SignatureHandle;
+	typedef uintptr_t ArgumentBlockHandle;
+	typedef uintptr_t RenderPassHandle;
+	typedef uintptr_t FramebufferHandle;
+
+	struct SamplerDesc;
 
 struct RenderTargetView {
-  Image *image;
+  ImageHandle image;
 };
 
 struct DepthStencilRenderTargetView {
-  Image *image;
+  ImageHandle image;
 };
 
 struct SampledImageView {
-  Image *image;
+  ImageHandle image;
   const SamplerDesc &sampler;
 };
 
 struct ConstantBufferView {
-  Buffer *buffer;
+  BufferHandle buffer;
   size_t offset;
   size_t size;
 };
 
 struct StorageBufferView {
-  Buffer *buffer;
+  BufferHandle buffer;
   size_t offset;
   size_t size;
 };
 
 struct VertexBufferView {
-  Buffer *buffer;
+  BufferHandle buffer;
   size_t offset;
   size_t size;
 };
 
 struct IndexBufferView {
-  Buffer *buffer;
+  BufferHandle buffer;
   size_t offset;
   size_t size;
 };
