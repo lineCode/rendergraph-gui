@@ -12,6 +12,4 @@ namespace gfx {
 	};
 
 	ENUM_BIT_FLAGS_OPERATORS(ShaderStageFlags)
-
-	class ShaderModule {};
 }

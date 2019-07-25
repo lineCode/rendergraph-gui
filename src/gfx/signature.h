@@ -194,6 +194,5 @@ struct SignatureDesc {
   `vertex_layouts`. bool isRootVertexInputSignature;*/
 };
 
-class Signature {};
 
 } // namespace gfx

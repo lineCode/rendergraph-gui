@@ -4,6 +4,7 @@
 
 namespace gfx {
 
+
 struct SamplerDesc {
   enum class AddressMode { Repeat, Clamp, Border, Mirror };
 
@@ -13,6 +14,7 @@ struct SamplerDesc {
   };
 
   enum class MipMapMode {
+	  None,
     Nearest,
     Linear,
   };

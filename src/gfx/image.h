@@ -1,7 +1,7 @@
 #pragma once
-#include <cstdint>
-#include "util/bitflags.h"
 #include "gfx/format.h"
+#include "util/bitflags.h"
+#include <cstdint>
 
 namespace gfx {
 enum class ImageDimensions { Image1D, Image2D, Image2DArray, Image3D };
@@ -12,27 +12,21 @@ enum class ImageUsageFlags : uint32_t {
   InputAttachment = 0b00000100,
   Storage = 0b00001000,
   Sampled = 0b00010000,
+  All = 0b00011111,
 };
 
 ENUM_BIT_FLAGS_OPERATORS(ImageUsageFlags)
 
 struct ImageDesc {
-	ImageDimensions dimensions;
-	Format format;
-	int width;
-	int height;
-	int depth;
-	int arrayLayerCount;
-	int mipMapCount;
-	int sampleCount;
-	ImageUsageFlags usage;
+  ImageDimensions dimensions = ImageDimensions::Image2D;
+  Format format = gfx::Format::R8G8B8A8_SRGB;
+  int width = 1;
+  int height = 1;
+  int depth = 1;
+  int arrayLayerCount = 1;
+  int mipMapCount = 1;
+  int sampleCount = 1;
+  ImageUsageFlags usage = ImageUsageFlags::All;
 };
 
-class Image {
-public:
-  virtual int width() = 0;
-  virtual int height() = 0;
-  virtual int depth() = 0;
-  virtual int format() = 0;
-};
 } // namespace gfx

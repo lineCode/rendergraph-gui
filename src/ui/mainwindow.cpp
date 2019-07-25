@@ -8,20 +8,14 @@
 #include <QPushButton>
 #include <QStatusBar>
 #include <QVBoxLayout>
+#include <QDockWidget>
+#include <QOpenGLContext>
 
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-  deleteNodeAct =
-      new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
-  connect(deleteNodeAct, SIGNAL(triggered()), this,
-          SLOT(deleteSelectedNodes()));
-  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
-  connectToServerAct =
-      new QAction{qtAwesome()->icon(fa::wifi), "Connect to server", this};
-  connect(connectToServerAct, SIGNAL(triggered()), this,
-          SLOT(connectToServer()));
-  exitAct = new QAction{"Exit"};
-  connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
+
+  renderOutput = new RenderOutputView;
+  renderOutput->show();
 
   networkView = new NetworkView;
   networkView->setModel(&networkModel);
@@ -43,11 +37,28 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   auto buttonAddNode = new QPushButton("Add node");
   connect(buttonAddNode, SIGNAL(released()), this, SLOT(addNode()));
 
+  // actions
+  deleteNodeAct =
+	  new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
+  connect(deleteNodeAct, SIGNAL(triggered()), this,
+	  SLOT(deleteSelectedNodes()));
+  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
+  connectToServerAct =
+	  new QAction{ qtAwesome()->icon(fa::wifi), "Connect to server", this };
+  connect(connectToServerAct, SIGNAL(triggered()), this,
+	  SLOT(connectToServer()));
+  exitAct = new QAction{ "Exit" };
+  connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
+  showRenderOutputAct = new QAction{ "Show render output" };
+  connect(showRenderOutputAct, SIGNAL(triggered()), renderOutput, SLOT(show()));
+
   // menu
   auto fileMenu = menuBar()->addMenu("&File");
   fileMenu->addAction(connectToServerAct);
   fileMenu->addSeparator();
   fileMenu->addAction(exitAct);
+  auto renderMenu = menuBar()->addMenu("&Render");
+  renderMenu->addAction(showRenderOutputAct);
 
   // layout
   auto layout = new QVBoxLayout;
@@ -57,16 +68,25 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   layout->addWidget(buttonScaleUp);
   layout->addWidget(buttonScaleDown);
 
-  // setup central widget
-  setCentralWidget(new QWidget);
-  centralWidget()->setLayout(layout);
 
+  // dock panels
+  setDockNestingEnabled(true);
+
+  auto networkViewDock = new QDockWidget{ tr("Network view") };
+  auto networkViewDockWidget = new QWidget;
+  networkViewDockWidget->setLayout(layout);
+  networkViewDock->setWidget(networkViewDockWidget);
+  addDockWidget(Qt::RightDockWidgetArea, networkViewDock);
+  
   // status bar
   connectionStatus = new QLabel{"Status: Disconnected"};
   statusBar()->addPermanentWidget(connectionStatus);
 }
 
-void MainWindow::exit() {}
+void MainWindow::exit() {
+	renderOutput->close();
+	close();
+}
 
 void MainWindow::connectToServer() {
   ui::ConnectDialog dialog;

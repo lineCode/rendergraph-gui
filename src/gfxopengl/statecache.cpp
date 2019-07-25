@@ -1,6 +1,6 @@
 #include "gfxopengl/statecache.h"
 #include "glcore45.h"
-#include <cassert>
+#include "util/panic.h"
 
 namespace gfxopengl {
 namespace {
@@ -14,7 +14,7 @@ gl::GLenum primitiveTopologyToGLenum(gfx::PrimitiveTopology topo) {
   case gfx::PrimitiveTopology::PointList:
     return gl::POINTS;
   }
-  assert(false);
+  UT_UNREACHABLE;
 }
 
 gl::GLenum stencilOpToGLenum(gfx::StencilOp op) {
@@ -36,6 +36,7 @@ gl::GLenum stencilOpToGLenum(gfx::StencilOp op) {
   case gfx::StencilOp::DecrementAndWrap:
     return gl::DECR_WRAP;
   }
+  UT_UNREACHABLE;
 }
 
 gl::GLenum compareOpToGLenum(gfx::CompareOp op) {
@@ -57,7 +58,7 @@ gl::GLenum compareOpToGLenum(gfx::CompareOp op) {
   case gfx::CompareOp::Always:
     return gl::ALWAYS;
   }
-  assert(false);
+  UT_UNREACHABLE;
 }
 
 gl::GLenum blendFactorToGLenum(gfx::BlendFactor f) {
@@ -101,7 +102,7 @@ gl::GLenum blendFactorToGLenum(gfx::BlendFactor f) {
   case gfx::BlendFactor::OneMinusSrc1Alpha:
     return gl::ONE_MINUS_SRC1_ALPHA;
   }
-  assert(false);
+  UT_UNREACHABLE;
 }
 
 gl::GLenum blendOpToGLenum(gfx::BlendOp op) {
@@ -117,7 +118,7 @@ gl::GLenum blendOpToGLenum(gfx::BlendOp op) {
   case gfx::BlendOp::Max:
     return gl::MAX;
   }
-  assert(false);
+  UT_UNREACHABLE;
 }
 
 } // namespace

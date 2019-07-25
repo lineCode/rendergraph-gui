@@ -1,6 +1,7 @@
 #include "gfxopengl/formatinfo.h"
 #include "gfxopengl/opengl.h"
 #include "gfxopengl/image.h"
+#include "util/panic.h"
 #include <algorithm>
 #include <cassert>
 #include <cmath>
@@ -16,7 +17,7 @@ gl::GLuint createTexture(const ImageDesc &d, gl::GLenum& target) {
     target = gl::TEXTURE_1D;
     break;
   case ImageDimensions::Image2D:
-    if (d.sampleCount > 0) 
+    if (d.sampleCount > 1) 
       target = gl::TEXTURE_2D_MULTISAMPLE;
      else 
       target = gl::TEXTURE_2D;
@@ -24,6 +25,8 @@ gl::GLuint createTexture(const ImageDesc &d, gl::GLenum& target) {
   case ImageDimensions::Image3D:
     target = gl::TEXTURE_3D;
     break;
+  default:
+	  UT_UNIMPLEMENTED;
   }
 
   const auto &glfmt = getGLImageFormatInfo(d.format);

@@ -34,10 +34,6 @@ public:
   ~OpenGLGraphicsBackend();
 
 
-private:
-  struct Private;
-  std::unique_ptr<Private> d;
-
   // Inherited via GraphicsBackend
   virtual gfx::ImageHandle createImage(const gfx::ImageDesc & desc) override;
   virtual void deleteImage(gfx::ImageHandle handle) override;
@@ -65,6 +61,11 @@ private:
   virtual void clearRenderTarget(gfx::RenderTargetView view, const gfx::ColorF & clearColor) override;
   virtual void clearDepthStencil(gfx::DepthStencilRenderTargetView view, float clearDepth) override;
   virtual void presentToScreen(gfx::ImageHandle img, unsigned width, unsigned height) override;
+  virtual void draw(gfx::GraphicsPipelineHandle pipeline, gfx::FramebufferHandle framebuffer, gfx::ArgumentBlockHandle arguments, gfx::DrawParams drawCommand) override;
+
+private:
+	struct Private;
+	std::unique_ptr<Private> d;
 };
 
 } // namespace gfxopengl

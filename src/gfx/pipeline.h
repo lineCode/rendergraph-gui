@@ -138,6 +138,9 @@ struct ColorBlendAttachmentState {
             srcAlpha == rhs.srcAlpha && dstAlpha == rhs.dstAlpha &&
             alphaOp == rhs.alphaOp);
   }
+  constexpr bool operator!=(const ColorBlendAttachmentState &rhs) const {
+	  return !this->operator==(rhs);
+  }
 };
 
 struct ScissorState {};
@@ -150,10 +153,10 @@ struct ColorBlendState {};
 struct GraphicsPipelineDesc {
   /// RenderPass that the pipeline conforms to. This pipeline will only be able
   /// to render to framebuffers created with this renderpass.
-  RenderPassHandle renderPass;
+  RenderPassHandle renderPass = 0;
   /// Signature of the pipeline. This pipeline will only accept argument blocks
   /// created with this signature.
-  SignatureHandle signature;
+  SignatureHandle signature = 0;
   GraphicsShaderStages shaderStages;
   ViewportState viewportState;
   RasterizationState rasterizationState;
@@ -162,7 +165,5 @@ struct GraphicsPipelineDesc {
   InputAssemblyState inputAssemblyState;
   ColorBlendState colorBlendState;
 };
-
-class GraphicsPipeline {};
 
 } // namespace gfx

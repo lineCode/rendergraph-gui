@@ -1,6 +1,7 @@
 #include "gfxopengl/shader.h"
 #include "gfxopengl/glcore45.h"
 #include "util/log.h"
+#include "util/panic.h"
 #include <cstring>
 #include <iostream>
 #include <ostream>
@@ -22,9 +23,8 @@ gl::GLenum shaderStageToGLenum(gfx::ShaderStageFlags stage) {
     return gl::TESS_EVALUATION_SHADER;
   case gfx::ShaderStageFlags::COMPUTE:
     return gl::COMPUTE_SHADER;
-  default:
-    assert(1);
   }
+  UT_PANIC_MSG("invalid shader stage (combinations are invalid in this context)");
 }
 
 const char *getShaderStageName(gl::GLenum stage) {

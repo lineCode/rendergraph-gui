@@ -3,16 +3,16 @@
 
 namespace gfx {
 
-	typedef uintptr_t ImageHandle;
-	typedef uintptr_t BufferHandle;
-	typedef uintptr_t ShaderModuleHandle;
-	typedef uintptr_t GraphicsPipelineHandle;
-	typedef uintptr_t SignatureHandle;
-	typedef uintptr_t ArgumentBlockHandle;
-	typedef uintptr_t RenderPassHandle;
-	typedef uintptr_t FramebufferHandle;
+typedef uintptr_t ImageHandle;
+typedef uintptr_t BufferHandle;
+typedef uintptr_t ShaderModuleHandle;
+typedef uintptr_t GraphicsPipelineHandle;
+typedef uintptr_t SignatureHandle;
+typedef uintptr_t ArgumentBlockHandle;
+typedef uintptr_t RenderPassHandle;
+typedef uintptr_t FramebufferHandle;
 
-	struct SamplerDesc;
+struct SamplerDesc;
 
 struct RenderTargetView {
   ImageHandle image;

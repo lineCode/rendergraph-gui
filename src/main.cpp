@@ -2,36 +2,37 @@
 
 #include <iostream>
 #include <QApplication>
+#include <QStyleFactory>
 #include <cstdint>
 
-const char* ENDPOINT = "tcp://127.0.0.1:5555";
-
 int main(int argc, char **argv) {
-	/*// Create ZMQ context and socket
-	zmq::context_t zmqctx;
-	zmq::socket_t socket{ zmqctx, zmq::socket_type::req };
-	socket.connect(ENDPOINT);
-	
-	// send a request
-	std::stringstream buffer;
-	msgpack::pack(buffer, (uint32_t)Method::GetVersion);
-	auto str = buffer.str();
-	socket.send(str.data(), str.size());
-
-	// receive reply
-	zmq::message_t msg;
-	socket.recv(&msg);
-
-	// read version
-	msgpack::object_handle obj = msgpack::unpack((const char*)msg.data(), msg.size());
-	auto deserialized = obj.get();
-	unsigned int version = 0;
-	deserialized.convert(version);
-	std::cerr << "Version: " << version << "\n";*/
-	
-
 	// Create window
 	auto app = new QApplication(argc, argv);
+	QApplication::setStyle(QStyleFactory::create("Fusion"));
+	// modify palette to dark
+	QPalette darkPalette;
+	darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
+	darkPalette.setColor(QPalette::WindowText, Qt::white);
+	darkPalette.setColor(QPalette::Disabled, QPalette::WindowText, QColor(127, 127, 127));
+	darkPalette.setColor(QPalette::Base, QColor(42, 42, 42));
+	darkPalette.setColor(QPalette::AlternateBase, QColor(66, 66, 66));
+	darkPalette.setColor(QPalette::ToolTipBase, Qt::white);
+	darkPalette.setColor(QPalette::ToolTipText, Qt::white);
+	darkPalette.setColor(QPalette::Text, Qt::white);
+	darkPalette.setColor(QPalette::Disabled, QPalette::Text, QColor(127, 127, 127));
+	darkPalette.setColor(QPalette::Dark, QColor(35, 35, 35));
+	darkPalette.setColor(QPalette::Shadow, QColor(20, 20, 20));
+	darkPalette.setColor(QPalette::Button, QColor(53, 53, 53));
+	darkPalette.setColor(QPalette::ButtonText, Qt::white);
+	darkPalette.setColor(QPalette::Disabled, QPalette::ButtonText, QColor(127, 127, 127));
+	darkPalette.setColor(QPalette::BrightText, Qt::red);
+	darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
+	darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
+	darkPalette.setColor(QPalette::Disabled, QPalette::Highlight, QColor(80, 80, 80));
+	darkPalette.setColor(QPalette::HighlightedText, Qt::white);
+	darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, QColor(127, 127, 127));
+	QApplication::setPalette(darkPalette);
+
 	auto mainWindow = new ui::MainWindow();
 	mainWindow->show();
 	app->exec();

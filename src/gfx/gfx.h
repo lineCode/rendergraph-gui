@@ -1,11 +1,5 @@
 #pragma once
 // Main header for the backend-agnostic graphics API
-
-// header organization:
-// one header per interface
-// put large structs in separate headers and forward declare
-// put small enums & structs passed by value in a common header
-
 #include "gfx/format.h"
 #include "gfx/sampler.h"
 #include "gfx/shader.h"
@@ -14,11 +8,7 @@
 #include "util/stringref.h"
 #include <cstdint>
 #include <memory>
-
-// image -> image.h
-// pipeline -> pipeline.h
-// backend -> gfx.h
-// RenderTargetView -> types.h (via gfx.h)
+#include <utility>
 
 namespace gfx {
 
@@ -28,6 +18,14 @@ struct GraphicsPipelineDesc;
 
 struct RenderPassTargetDesc {
   ColorF clearValue;
+};
+
+/// Parameters for non-indexed draw commands.
+struct DrawParams {
+  uint32_t vertexCount;
+  uint32_t instanceCount;
+  uint32_t firstVertex;
+  uint32_t firstInstance;
 };
 
 class GraphicsBackend {
@@ -108,18 +106,187 @@ public:
   virtual void clearDepthStencil(DepthStencilRenderTargetView view,
                                  float clearDepth) = 0;
 
-  virtual void presentToScreen(ImageHandle img, unsigned width, unsigned height) = 0;
+  virtual void presentToScreen(ImageHandle img, unsigned width,
+                               unsigned height) = 0;
+
+  virtual void draw(GraphicsPipelineHandle pipeline,
+                    FramebufferHandle framebuffer,
+                    ArgumentBlockHandle arguments, DrawParams drawCommand) = 0;
 
 private:
 };
 
-//
-class GraphicsApi {
+template <typename T, typename Deleter> class Handle {
 public:
-  GraphicsApi();
-  ~GraphicsApi();
+  Handle(gfx::GraphicsBackend *backend, T raw) : backend_{backend}, raw_{raw} {}
+
+  /// default and nullptr constructors folded together
+  Handle(std::nullptr_t = nullptr) : backend_{nullptr}, raw_{0} {}
+
+  /// Move-constructor: take ownership
+  Handle(Handle &&rhs) : backend_{rhs.backend_}, raw_{rhs.raw_} {
+    rhs.backend_ = nullptr;
+    rhs.raw_ = 0;
+  }
+
+  /// Move-assignment operator: take ownership
+  Handle &operator=(Handle &&rhs) {
+    std::swap(backend_, rhs.backend_);
+    std::swap(raw_, rhs.raw_);
+    return *this;
+  }
+
+  // not copyable
+  Handle(const Handle &) = delete;
+  Handle &operator=(const Handle &) = delete;
+
+  ~Handle() {
+    if (raw_) {
+      Deleter{}(backend_, raw_);
+    }
+  }
+
+  GraphicsBackend *backend() const { return backend_; }
+  T get() const { return raw_; }
+
+  explicit operator bool() { return obj != 0; }
+  friend bool operator==(const Handle &l, const Handle &r) {
+    return l.backend_ == r.backend_ && l.raw_ == r.raw_;
+  }
+  friend bool operator!=(const Handle &l, const Handle &r) { return !(l == r); }
+
+  // default copy ctor and operator= are fine
+  // explicit nullptr assignment and comparison unneeded
+  // because of implicit nullptr constructor
+  // swappable requirement fulfilled by std::swap
 
 private:
+  gfx::GraphicsBackend *backend_;
+  T raw_;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct ImageDeleter {
+  void operator()(GraphicsBackend *backend, ImageHandle handle) {
+    backend->deleteImage(handle);
+  }
+};
+
+class Image {
+public:
+  Image() = default;
+  Image(GraphicsBackend *backend, const ImageDesc &desc)
+      : image{backend, backend->createImage(desc)} {}
+
+  RenderTargetView asRenderTargetView() {
+    return RenderTargetView{image.get()};
+  }
+
+  operator ImageHandle() { return image.get(); }
+
+private:
+  Handle<ImageHandle, ImageDeleter> image;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct ShaderModuleDeleter {
+  void operator()(GraphicsBackend *backend, ShaderModuleHandle handle) {
+    backend->deleteShaderModule(handle);
+  }
+};
+
+class ShaderModule {
+public:
+  ShaderModule() = default;
+  ShaderModule(GraphicsBackend *backend, util::StringRef source,
+               gfx::ShaderStageFlags stage)
+      : shader{backend, backend->createShaderModule(source, stage)} {}
+
+  operator ShaderModuleHandle() { return shader.get(); }
+
+private:
+  Handle<ShaderModuleHandle, ShaderModuleDeleter> shader;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct GraphicsPipelineDeleter {
+  void operator()(GraphicsBackend *backend, GraphicsPipelineHandle handle) {
+    backend->deleteGraphicsPipeline(handle);
+  }
+};
+
+class GraphicsPipeline {
+public:
+  GraphicsPipeline() = default;
+  GraphicsPipeline(GraphicsBackend *backend, gfx::GraphicsPipelineDesc &desc)
+      : pipeline{backend, backend->createGraphicsPipeline(desc)} {}
+
+  operator GraphicsPipelineHandle() { return pipeline.get(); }
+
+private:
+  Handle<GraphicsPipelineHandle, GraphicsPipelineDeleter> pipeline;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct FramebufferDeleter {
+	void operator()(GraphicsBackend *backend, FramebufferHandle handle) {
+		backend->deleteFramebuffer(handle);
+	}
+};
+
+class Framebuffer {
+public:
+	Framebuffer() = default;
+	Framebuffer(GraphicsBackend *backend, util::ArrayRef<gfx::RenderTargetView> colorTargets,
+		gfx::DepthStencilRenderTargetView *depthTarget)
+		: framebuffer{ backend, backend->createFramebuffer(colorTargets, depthTarget) } {}
+
+	operator FramebufferHandle() { return framebuffer.get(); }
+
+private:
+	Handle<FramebufferHandle, FramebufferDeleter> framebuffer;
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+struct RenderPassDeleter {
+  void operator()(GraphicsBackend *backend, RenderPassHandle handle) {
+    backend->deleteRenderPass(handle);
+  }
+};
+
+class RenderPass {
+public:
+  RenderPass() = default;
+  RenderPass(GraphicsBackend *backend,
+             util::ArrayRef<gfx::RenderPassTargetDesc> colorTargets,
+             const gfx::RenderPassTargetDesc *depthTarget)
+      : renderPass{backend,
+                   backend->createRenderPass(colorTargets, depthTarget)} {}
+
+  operator RenderPassHandle() { return renderPass.get(); }
+
+private:
+  Handle<RenderPassHandle, RenderPassDeleter> renderPass;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct SignatureDeleter {
+  void operator()(GraphicsBackend *backend, SignatureHandle handle) {
+    backend->deleteSignature(handle);
+  }
+};
+
+class Signature {
+public:
+  Signature() = default;
+  Signature(GraphicsBackend *backend, const SignatureDesc &desc)
+      : signature{backend, backend->createSignature(nullptr, desc)} {}
+
+  operator SignatureHandle() { return signature.get(); }
+
+private:
+  Handle<SignatureHandle, SignatureDeleter> signature;
 };
 
 } // namespace gfx

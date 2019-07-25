@@ -211,7 +211,9 @@ void NodeGraphicsObjectPrivate::updateConnectorLayout(
 void NodeConnectionGraphicsItemPrivate::updatePositions() {
   QPainterPath p;
   auto srcPos = srcConn_->scenePos();
+  srcPos.setY(srcPos.y() + CONNECTOR_RADIUS);
   auto dstPos = dstConn_->scenePos();
+  dstPos.setY(dstPos.y() - CONNECTOR_RADIUS);
   p.moveTo(srcPos);
   p.cubicTo(srcPos + QPointF{0, 30}, dstPos + QPointF{0, -30}, dstPos);
   setPath(p);

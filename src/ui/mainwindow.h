@@ -2,10 +2,14 @@
 #include "imageview.h"
 #include "networkview.h"
 #include "standardnetworkmodel.h"
+#include "ui/renderoutputview.h"
+#include "gfx/gfx.h"
+#include "gfxopengl/opengl.h"
 #include "client/client.h"
 #include <QListView>
 #include <QMainWindow>
 #include <QLabel>
+#include <QOpenGLWidget>
 
 namespace ui {
 
@@ -31,9 +35,12 @@ private:
   QAction *deleteNodeAct;
   QAction *addNodeAct;
   QAction* exitAct;
+  QAction* showRenderOutputAct;
 
   QListView *listView;
   NetworkView *networkView;
+  RenderOutputView* renderOutput;
+
   QLabel* connectionStatus;
   StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
