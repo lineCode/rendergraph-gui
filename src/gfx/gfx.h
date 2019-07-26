@@ -20,6 +20,16 @@ struct RenderPassTargetDesc {
   ColorF clearValue;
 };
 
+struct RenderPassDesc {
+	util::ArrayRef<RenderPassTargetDesc> colorTargets;
+	const RenderPassTargetDesc *depthTarget;
+};
+
+struct FramebufferDesc {
+	util::ArrayRef<RenderTargetView> colorTargets;
+	DepthStencilRenderTargetView *depthTarget;
+};
+
 /// Parameters for non-indexed draw commands.
 struct DrawParams {
   uint32_t vertexCount;
@@ -80,8 +90,7 @@ public:
 
   /// Creates a new render pass.
   virtual RenderPassHandle
-  createRenderPass(util::ArrayRef<RenderPassTargetDesc> colorTargets,
-                   const RenderPassTargetDesc *depthTarget) = 0;
+  createRenderPass(const RenderPassDesc& desc) = 0;
   virtual void deleteRenderPass(RenderPassHandle handle) = 0;
 
   /// Creates a new graphics pipeline.
@@ -91,8 +100,7 @@ public:
 
   /// Creates a new framebuffer for the given render pass.
   virtual FramebufferHandle
-  createFramebuffer(util::ArrayRef<RenderTargetView> colorTargets,
-                    DepthStencilRenderTargetView *depthTarget) = 0;
+  createFramebuffer(const FramebufferDesc& desc) = 0;
   virtual void deleteFramebuffer(FramebufferHandle handle) = 0;
 
   /// Upload some constant data to a GPU buffer
@@ -237,9 +245,8 @@ struct FramebufferDeleter {
 class Framebuffer {
 public:
 	Framebuffer() = default;
-	Framebuffer(GraphicsBackend *backend, util::ArrayRef<gfx::RenderTargetView> colorTargets,
-		gfx::DepthStencilRenderTargetView *depthTarget)
-		: framebuffer{ backend, backend->createFramebuffer(colorTargets, depthTarget) } {}
+	Framebuffer(GraphicsBackend *backend, const FramebufferDesc& desc)
+		: framebuffer{ backend, backend->createFramebuffer(desc) } {}
 
 	operator FramebufferHandle() { return framebuffer.get(); }
 
@@ -259,10 +266,9 @@ class RenderPass {
 public:
   RenderPass() = default;
   RenderPass(GraphicsBackend *backend,
-             util::ArrayRef<gfx::RenderPassTargetDesc> colorTargets,
-             const gfx::RenderPassTargetDesc *depthTarget)
+             const RenderPassDesc& desc)
       : renderPass{backend,
-                   backend->createRenderPass(colorTargets, depthTarget)} {}
+                   backend->createRenderPass(desc)} {}
 
   operator RenderPassHandle() { return renderPass.get(); }
 

@@ -46,6 +46,12 @@ static void getContextInfo(OpenGLContextInfo &out) {
                   &out.uniformBufferOffsetAlignment);
 }
 
+struct DriverWorkarounds {
+  // glBlitNamedFramebuffer does nothing on intel windows if the destination and
+  // target are not already bound to GL_{READ/DRAW}_FRAMEBUFFER
+  bool intelWindowsBrokenDSABlitNamedFramebuffer = true;
+};
+
 /////////////////////////////////////////////////////////////////////////////////////////////////
 struct SignatureInner {
   std::vector<std::shared_ptr<SignatureInner>> inherited;
@@ -147,6 +153,7 @@ struct OpenGLGraphicsBackend::Private {
   std::unordered_map<gfx::SamplerDesc, gl::GLuint, SamplerHash> samplerCache;
   int maxFramesInFlight = 2;
   SyncTimeline frameTimeline;
+  DriverWorkarounds workarounds;
 
   Private() {}
 
@@ -324,9 +331,21 @@ void OpenGLGraphicsBackend::argumentBlockSetShaderResource(
 }
 
 void OpenGLGraphicsBackend::argumentBlockSetShaderResource(
-    gfx::ArgumentBlockHandle argBlock, int resourceIndex,
-    gfx::ConstantBufferView buf) {
-  // TODO
+    gfx::ArgumentBlockHandle argBlock, int index, gfx::ConstantBufferView cbv) {
+
+  ArgumentBlock *a = (ArgumentBlock *)argBlock;
+  if (a->uniformBuffers.size() <= index)
+    a->uniformBuffers.resize(index + 1, 0);
+  if (a->uniformBufferOffsets.size() <= index)
+    a->uniformBufferOffsets.resize(index + 1, 0);
+  if (a->uniformBufferSizes.size() <= index)
+    a->uniformBufferSizes.resize(index + 1, 0);
+
+  Buffer *buf = (Buffer *)cbv.buffer;
+
+  a->uniformBuffers[index] = buf->obj;
+  a->uniformBufferOffsets[index] = buf->offset + cbv.offset;
+  a->uniformBufferSizes[index] = buf->byteSize;
 }
 
 void OpenGLGraphicsBackend::argumentBlockSetShaderResource(
@@ -359,9 +378,8 @@ void OpenGLGraphicsBackend::argumentBlockSetIndexBuffer(
 
 struct RenderPass {};
 
-gfx::RenderPassHandle OpenGLGraphicsBackend::createRenderPass(
-    util::ArrayRef<gfx::RenderPassTargetDesc> colorTargets,
-    const gfx::RenderPassTargetDesc *depthTarget) {
+gfx::RenderPassHandle
+OpenGLGraphicsBackend::createRenderPass(const gfx::RenderPassDesc &desc) {
   RenderPass *renderPass = new RenderPass;
   return (gfx::RenderPassHandle)renderPass;
 }
@@ -449,9 +467,8 @@ gfx::GraphicsPipelineHandle OpenGLGraphicsBackend::createGraphicsPipeline(
 void OpenGLGraphicsBackend::deleteGraphicsPipeline(
     gfx::GraphicsPipelineHandle handle) {}
 
-gfx::FramebufferHandle OpenGLGraphicsBackend::createFramebuffer(
-    util::ArrayRef<gfx::RenderTargetView> colorTargets,
-    gfx::DepthStencilRenderTargetView *depthTarget) {
+gfx::FramebufferHandle
+OpenGLGraphicsBackend::createFramebuffer(const gfx::FramebufferDesc &desc) {
   gl::GLuint fbo;
   gl::CreateFramebuffers(1, &fbo);
   static const gl::GLenum drawBuffers[8] = {
@@ -459,11 +476,11 @@ gfx::FramebufferHandle OpenGLGraphicsBackend::createFramebuffer(
       gl::COLOR_ATTACHMENT0 + 2, gl::COLOR_ATTACHMENT0 + 3,
       gl::COLOR_ATTACHMENT0 + 4, gl::COLOR_ATTACHMENT0 + 5,
       gl::COLOR_ATTACHMENT0 + 6, gl::COLOR_ATTACHMENT0 + 7};
-  gl::NamedFramebufferDrawBuffers(fbo, (gl::GLsizei)colorTargets.len,
+  gl::NamedFramebufferDrawBuffers(fbo, (gl::GLsizei)desc.colorTargets.len,
                                   drawBuffers);
 
-  for (int i = 0; i < colorTargets.len; ++i) {
-    Image *img = (Image *)colorTargets.data[i].image;
+  for (int i = 0; i < desc.colorTargets.len; ++i) {
+    Image *img = (Image *)desc.colorTargets.data[i].image;
 
     if (img->isRenderbuffer) {
       gl::NamedFramebufferRenderbuffer(fbo, gl::COLOR_ATTACHMENT0 + i,
@@ -552,17 +569,38 @@ void OpenGLGraphicsBackend::presentToScreen(gfx::ImageHandle img,
 
   // TODO disable scissor test
 
-  gl::BlitNamedFramebuffer(tmpfb, 0,
-                           0,      // srcX0
-                           0,      // srcY0
-                           width,  // srcX1,
-                           height, // srcY1,
-                           0,      // dstX0
-                           height, // dstY0
-                           width,  // dstX1,
-                           0,      // dstY1,
-                           gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT,
-                           gl::NEAREST);
+  // XXX figure out why binding the framebuffer here is necessary
+
+  gl::Disable(gl::DEPTH_TEST);
+  gl::Disable(gl::SCISSOR_TEST);
+
+  if (d->workarounds.intelWindowsBrokenDSABlitNamedFramebuffer) {
+    gl::BindFramebuffer(gl::READ_FRAMEBUFFER, tmpfb);
+    gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0);
+    gl::BlitFramebuffer(0,      // srcX0
+                        0,      // srcY0
+                        width,  // srcX1,
+                        height, // srcY1,
+                        0,      // dstX0
+                        height, // dstY0
+                        width,  // dstX1,
+                        0,      // dstY1,
+                        gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT,
+                        gl::NEAREST);
+  } else {
+    // Use DSA version
+    gl::BlitNamedFramebuffer(tmpfb, 0,
+                             0,      // srcX0
+                             0,      // srcY0
+                             width,  // srcX1,
+                             height, // srcY1,
+                             0,      // dstX0
+                             height, // dstY0
+                             width,  // dstX1,
+                             0,      // dstY1,
+                             gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT,
+                             gl::NEAREST);
+  }
 
   // destroy temp framebuffer
   gl::DeleteFramebuffers(1, &tmpfb);
@@ -573,8 +611,7 @@ void OpenGLGraphicsBackend::presentToScreen(gfx::ImageHandle img,
 void OpenGLGraphicsBackend::draw(gfx::GraphicsPipelineHandle pipeline,
                                  gfx::FramebufferHandle framebuffer,
                                  gfx::ArgumentBlockHandle arguments,
-                                 gfx::DrawParams drawCommand)
-{
+                                 gfx::DrawParams drawCommand) {
   GraphicsPipeline *pipeline_ = (GraphicsPipeline *)pipeline;
   ArgumentBlock *args_ = (ArgumentBlock *)arguments;
   gl::GLuint fbo = (gl::GLuint)framebuffer;
@@ -587,9 +624,14 @@ void OpenGLGraphicsBackend::draw(gfx::GraphicsPipelineHandle pipeline,
                         args_->vertexBufferStrides.data());
   gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, fbo);
 
+  gl::BindBuffersRange(gl::UNIFORM_BUFFER, 0, args_->uniformBuffers.size(),
+                       args_->uniformBuffers.data(),
+                       args_->uniformBufferOffsets.data(),
+                       args_->uniformBufferSizes.data());
+
   gl::DrawArraysInstancedBaseInstance(
       gl::TRIANGLES, drawCommand.firstVertex, drawCommand.vertexCount,
-	  drawCommand.instanceCount, drawCommand.firstInstance);
+      drawCommand.instanceCount, drawCommand.firstInstance);
 }
 
 } // namespace gfxopengl

@@ -50,11 +50,11 @@ public:
   virtual void argumentBlockSetShaderResource(gfx::ArgumentBlockHandle argBlock, int resourceIndex, gfx::StorageBufferView buf) override;
   virtual void argumentBlockSetVertexBuffer(gfx::ArgumentBlockHandle argBlock, int index, gfx::VertexBufferView buf) override;
   virtual void argumentBlockSetIndexBuffer(gfx::ArgumentBlockHandle argBlock, gfx::IndexBufferView buf) override;
-  virtual gfx::RenderPassHandle createRenderPass(util::ArrayRef<gfx::RenderPassTargetDesc> colorTargets, const gfx::RenderPassTargetDesc * depthTarget) override;
+  virtual gfx::RenderPassHandle createRenderPass(const gfx::RenderPassDesc& desc) override;
   virtual void deleteRenderPass(gfx::RenderPassHandle handle) override;
   virtual gfx::GraphicsPipelineHandle createGraphicsPipeline(const gfx::GraphicsPipelineDesc & desc) override;
   virtual void deleteGraphicsPipeline(gfx::GraphicsPipelineHandle handle) override;
-  virtual gfx::FramebufferHandle createFramebuffer(util::ArrayRef<gfx::RenderTargetView> colorTargets, gfx::DepthStencilRenderTargetView * depthTarget) override;
+  virtual gfx::FramebufferHandle createFramebuffer(const gfx::FramebufferDesc& desc) override;
   virtual void deleteFramebuffer(gfx::FramebufferHandle handle) override;
   virtual gfx::BufferHandle createConstantBuffer(const void * data, size_t len) override;
   virtual void deleteBuffer(gfx::BufferHandle handle) override;

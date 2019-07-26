@@ -31,7 +31,7 @@ layout(location=0) out vec4 out_color;
 void main() {
 	vec2 u_resolution = vec2(640, 480);
 	vec2 u_scroll_offset = vec2(0, 0);
-	float u_zoom = 0.0;
+	float u_zoom = 1.0;
     vec2 px_position = v_position * vec2(1.0, -1.0) * u_resolution * 0.5;
     // #005fa4
     float vignette = clamp(0.7 * length(v_position), 0.0, 1.0);
@@ -82,10 +82,15 @@ public:
 	gfx::ShaderModule vert{ g_.get(), BACKGROUND_VERT, gfx::ShaderStageFlags::VERTEX };
 	gfx::ShaderModule frag{ g_.get(), BACKGROUND_FRAG, gfx::ShaderStageFlags::FRAGMENT };
 
-	gfx::RenderPassTargetDesc rpDesc[1] = {
+	gfx::RenderPassTargetDesc rptDesc[1] = {
 		gfx::RenderPassTargetDesc{ gfx::ColorF{0.0, 1.0, 0.0, 1.0} }
 	};
-	renderPass_ = gfx::RenderPass{ g_.get(), util::ArrayRef<gfx::RenderPassTargetDesc>{ 1, rpDesc }, nullptr };
+
+	gfx::RenderPassDesc rpDesc;
+	rpDesc.colorTargets = util::ArrayRef<gfx::RenderPassTargetDesc>{ 1, rptDesc };
+	rpDesc.depthTarget = nullptr;
+
+	renderPass_ = gfx::RenderPass{ g_.get(), rpDesc };
 	
 	gfx::VertexLayoutElement layoutElements[1] = {
 		gfx::VertexLayoutElement {
@@ -137,7 +142,12 @@ public:
 
 	gfx::Image img{ g_.get(), desc };
 	gfx::RenderTargetView imgRTV = img.asRenderTargetView();
-	gfx::Framebuffer fbo{ g_.get(), {1, &imgRTV}, nullptr };
+
+	gfx::FramebufferDesc fbDesc;
+	fbDesc.colorTargets = { 1, &imgRTV };
+	fbDesc.depthTarget = nullptr;
+
+	gfx::Framebuffer fbo{ g_.get(), fbDesc };
 
     g_->clearRenderTarget(gfx::RenderTargetView{img},
                           gfx::ColorF{0.5f, 0.5f, 0.7f, 1.0f});
