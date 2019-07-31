@@ -1,4 +1,5 @@
 #pragma once
+#include "gfx/gfx.h"
 
 namespace render {
 
@@ -37,12 +38,23 @@ namespace render {
 	///     - mark CPU side data as dirty (require CPU->GPU upload)
 	///		- mark GPU side data as dirty (require GPU->CPU upload)
 	///
-	/// 
-	/// 
+	/// In the end, an image has several components
+	/// - Description (Image)
+	/// - CPU data (ImageBuffer), possibly shared
+	/// - GPU data (gfx::Image), possibly shared
+	/// - Data source (ImageDataSource)
 
 	class Parameter {
 
 	};
+
+
+	struct ImageMetadata {
+		// dimensions, width, height, depth, format, 
+	};
+
+
+
 
 	class Node {
 

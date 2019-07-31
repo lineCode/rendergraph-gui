@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 #==========================================================
 # Dependencies
@@ -16,10 +17,12 @@ find_package(ZeroMQ CONFIG REQUIRED)
 find_package(cppzmq CONFIG REQUIRED)
 find_package(RapidJSON CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
+find_package(OpenImageIO REQUIRED)		# Does not natively support cmake targets
 
 #==========================================================
 # Vendored dependencies
 add_subdirectory(ext/fmt-5.3.0)
+add_subdirectory(ext/filesystem-master)
 
 #==========================================================
 # Sources
@@ -47,6 +50,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/ FILES ${SOURCES} ${HEADERS} ${RES
 
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
-target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
-target_link_libraries(rendergraph_gui PRIVATE OpenGL::GL Qt5::Widgets libzmq cppzmq fmt-header-only)
+target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS} ${OPENIMAGEIO_INCLUDE_DIR})
+target_link_libraries(rendergraph_gui PRIVATE OpenGL::GL Qt5::Widgets libzmq cppzmq fmt-header-only ghc_filesystem ${OPENIMAGEIO_LIBRARIES})
 

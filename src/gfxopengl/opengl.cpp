@@ -368,7 +368,7 @@ void OpenGLGraphicsBackend::argumentBlockSetVertexBuffer(
   Buffer *buf = (Buffer *)vbv.buffer;
   a->vertexBuffers[index] = buf->obj;
   a->vertexBufferOffsets[index] = buf->offset + vbv.offset;
-  a->vertexBufferStrides[index] = a->sig->vertexInputs[index].layout.stride;
+  a->vertexBufferStrides[index] = (gl::GLsizei)a->sig->vertexInputs[index].layout.stride;
 }
 
 void OpenGLGraphicsBackend::argumentBlockSetIndexBuffer(
