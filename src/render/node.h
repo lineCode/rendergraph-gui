@@ -1,5 +1,6 @@
 #pragma once
 #include "gfx/gfx.h"
+#include <string>
 
 namespace render {
 
@@ -57,6 +58,7 @@ namespace render {
 
 
 	class Node {
-
+		
 	};
+
 }

@@ -14,4 +14,9 @@ template <typename T> struct ArrayRef {
   const T &operator[](std::size_t idx) const { return data[idx]; }
 };
 
+template <typename T, size_t N>
+ArrayRef<T> makeArrayRef(T (&a)[N]) {
+	return ArrayRef<T>(N, a);
+}
+
 } // namespace util

@@ -37,7 +37,7 @@ struct VertexLayoutElement {
 /// Created by the user, must match struct layout of vertices.
 struct VertexLayout {
   /// Description of individual vertex attributes inside the buffer.
-  util::ArrayRef<VertexLayoutElement> elements;
+  util::ArrayRef<const VertexLayoutElement> elements;
   /// Number of bytes to go to the next element.
   size_t stride;
 };
@@ -120,6 +120,16 @@ struct ResourceBinding {
 	/// Data format for r/w images & texel buffers.
 	/// `Format::UNDEFINED` if not applicable (all other binding types)
 	pub data_format : Format,*/
+
+	static ResourceBinding makeConstantBuffer(int32_t index) {
+		ResourceBinding b;
+		b.index = index;
+		b.ty = ResourceBindingType::ConstantBuffer;
+		b.shape = ResourceShape::RBuffer;
+		b.visibility = ShaderStageFlags::COMPUTE | ShaderStageFlags::VERTEX | ShaderStageFlags::FRAGMENT | ShaderStageFlags::GEOMETRY | ShaderStageFlags::TESS_CONTROL | ShaderStageFlags::TESS_EVAL;
+		b.count = 1;
+		return b;
+	}
 };
 
 /// TODO
@@ -128,26 +138,26 @@ struct SignatureDesc {
   ///
   /// The length of this slice defines the number of _inherited argument
   /// blocks_.
-  util::ArrayRef<const SignatureDesc *> inherited;
+  util::ArrayRef<const SignatureDesc * const> inherited;
 
   /// Descriptors in the block.
   ///
   /// The length of this slice defines the number of _descriptors_ in a block.
   /// 
-  util::ArrayRef<ResourceBinding> shaderResources;
+  util::ArrayRef<const ResourceBinding> shaderResources;
 
   /// Layouts of all vertex buffers in the block.
   ///
   /// The length of this slice defines the number of _vertex buffers_ in a
   /// block.
-  util::ArrayRef<VertexInputBinding> vertexInputs;
+  util::ArrayRef<const VertexInputBinding> vertexInputs;
 
   /// (Color) outputs of the fragment shader. The block contains one _render
   /// target_ image for each entry.
   ///
   /// The length of this slice defines the number of _render targets_ in a
   /// block.
-  util::ArrayRef<FragmentOutputDescription> fragmentOutputs;
+  util::ArrayRef<const FragmentOutputDescription> fragmentOutputs;
 
   /// Depth-stencil output of the fragment shader. If not `nullptr` then the
   /// block contains a depth-stencil render target image.

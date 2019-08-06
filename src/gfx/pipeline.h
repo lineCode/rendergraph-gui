@@ -116,7 +116,7 @@ struct DepthStencilState {
   bool depthBoundsTestEnable = false;
   float minDepthBounds = 0.0;
   float maxDepthBounds = 0.0;
-  bool stencilTestEnable;
+  bool stencilTestEnable = false;
   StencilOpState stencilFrontOps;
   StencilOpState stencilBackOps;
 };

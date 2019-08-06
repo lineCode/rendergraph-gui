@@ -18,35 +18,6 @@
 // - These parameters know how to "insert" themselves into a shader.
 // - For convenience, parameters are nodes themselves (owned by the parent node)		
 
-
-
-
 namespace render {
 	
-
-	// Context: a set of parameters (name,types) that are visible under a certain context
-	// Within a screen-space pass:
-	// - 
-
-	/*// <version>	version()/setVersion()
-	// <includes>
-	// 
-	// 
-	class GLSLGen {
-	public:
-		using TypeIndex = int;
-		using FunctionContext = int;
-		using LocalIndex = int;
-		using Value = int;
-
-		int version() const;
-		void setVersion(int v);
-		void addInclude(const char* path);
-
-		TypeIndex voidType();
-
-		FunctionContext genFunction(util::StringRef name, util::ArrayRef<TypeIndex> args, TypeIndex returnType);
-		void genFunctionReturn();
-	};*/
-
 }

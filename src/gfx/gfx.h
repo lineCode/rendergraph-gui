@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <string>
 
 namespace gfx {
 
@@ -22,12 +23,12 @@ struct RenderPassTargetDesc {
 };
 
 struct RenderPassDesc {
-	util::ArrayRef<RenderPassTargetDesc> colorTargets;
+	util::ArrayRef<const RenderPassTargetDesc> colorTargets;
 	const RenderPassTargetDesc *depthTarget;
 };
 
 struct FramebufferDesc {
-	util::ArrayRef<RenderTargetView> colorTargets;
+	util::ArrayRef<const RenderTargetView> colorTargets;
 	DepthStencilRenderTargetView *depthTarget;
 };
 
@@ -37,6 +38,29 @@ struct DrawParams {
   uint32_t instanceCount;
   uint32_t firstVertex;
   uint32_t firstInstance;
+};
+
+/// Compilation log of a shader
+struct ShaderCompilationMessages {
+	std::string messages;
+};
+
+/// Compilation log of a shader
+struct GraphicsPipelineCompilationMessages {
+	std::string messages;
+};
+
+
+class ShaderCompilationError : public std::exception {
+public:
+	ShaderCompilationError() = default;
+	ShaderCompilationError(const char *message) : std::exception{ message } {}
+};
+
+class GraphicsPipelineCompilationError : public std::exception {
+public:
+	GraphicsPipelineCompilationError() = default;
+	GraphicsPipelineCompilationError(const char *message) : std::exception{ message } {}
 };
 
 class GraphicsBackend {
