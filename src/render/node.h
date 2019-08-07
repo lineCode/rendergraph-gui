@@ -1,64 +1,39 @@
 #pragma once
 #include "gfx/gfx.h"
 #include <string>
+#include <vector>
 
 namespace render {
 
-	/// Base class for node parameters.
-	/// 
-	/// Parameters have a type, and have can be associated to an "expression". 
-	///
-	/// E.g. if user wants an "image" or "texture" parameter, can set the parameter to:
-	/// - a file: file:///./stuff.png
-	/// - a file over the network: https://example.org/stuff.png
-	/// - a reference to a node output: op:../../node/output_0
-	/// - an expression that produces pixel values: 
-	/// 
-	/// If the user wants a scalar value, can set the parameter to:
-	/// - the scalar itself: `3.14`
-	/// - an expression that evaluates to a scalar: `2.0 * $time`
-	/// - an expression involving a texture: `sample(tex, $x,$y)`
-	///
-	/// There is what the parameter is expected to be, and what the user inputs.
-	/// Implicit conversions are possible:
-	/// e.g. scalar -> image 
-	///      expr with $x,$y -> image
-	///      op path -> image if the output is an image
-	///
-	/// Image
-	/// + data on GPU (if requested, possibly shared)
-	/// + data on CPU (if requested, possibly shared)
-	/// + source:
-	///		- FileBacked -> load image data from a file
-	///		- Procedural -> load image data from an expression
-	///		- Op -> image produced by an Op (Op has shared ref to this image)
-	/// 
-	/// + render pipeline interface (component attached to the image object)
-	///		- get GPU texture object
-	///		- get GPU render target object
-	///     - mark CPU side data as dirty (require CPU->GPU upload)
-	///		- mark GPU side data as dirty (require GPU->CPU upload)
-	///
-	/// In the end, an image has several components
-	/// - Description (Image)
-	/// - CPU data (ImageBuffer), possibly shared
-	/// - GPU data (gfx::Image), possibly shared
-	/// - Data source (ImageDataSource)
+/// Base class for all nodes.
+///
+/// The main purpose of this class is to unify the way dependencies between
+/// operations are handled.
+class Node {
+public:
+  using Ptr = std::unique_ptr<Node>;
 
-	class Parameter {
+  Node() {}
+  Node(std::string name) : name_{ name }
+  {}
 
-	};
+  // Name
+  util::StringRef name() const;
+  void setName(std::string name);
 
+  /// Returns the parent of this node.
+  Node *parent() const;
 
-	struct ImageMetadata {
-		// dimensions, width, height, depth, format, 
-	};
+  /// Adds a child node
+  Node *addChild(Ptr ptr);
 
+private:
+	std::string name_;
+  Node *parent_ = nullptr; // parent of this node, or nullptr if this is the root node
+  std::vector<Ptr> children_;      // nodes contained inside this node
+  std::vector<Node *> references_; // nodes referenced by this node (which nodes
+                                   // this node depends on?)
+  std::vector<Node *> dependents_; // nodes that depend on this node
+};
 
-
-
-	class Node {
-		
-	};
-
-}
+} // namespace render

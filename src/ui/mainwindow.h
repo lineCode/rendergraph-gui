@@ -5,6 +5,8 @@
 #include "ui/renderoutputview.h"
 #include "gfx/gfx.h"
 #include "gfxopengl/opengl.h"
+#include "render/node.h"
+#include "render/screenspacenode.h"
 #include "client/client.h"
 #include <QListView>
 #include <QMainWindow>
@@ -46,6 +48,7 @@ private:
   int nodeIdCounter = 0;
   bool connected_ = false;  
   std::unique_ptr<client::RendergraphClient> client_;
+  render::Node::Ptr root_;
 };
 
 } // namespace ui

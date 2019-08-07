@@ -1,8 +1,11 @@
+#include "render/screenspacenode.h"
 #include "fmt/format.h"
 #include "gfx/pipeline.h"
 #include "gfx/signature.h"
-#include "render/node.h"
+#include "render/constantbufferbuilder.h"
 #include "render/image.h"
+#include "render/node.h"
+#include <map>
 
 namespace render {
 
@@ -23,9 +26,6 @@ static const char FRAG_SRC_TEMPLATE[] = R"(
 layout(location=0) in vec2 a_position;
 layout(location=1) in vec2 texcoord;
 layout(location=0) out vec2 uv;
-
-
-
 void main() {
 	// <<<< fetch all parameters >>>>
 	// <<<< paste snippet here >>>> 
@@ -39,64 +39,6 @@ static const gfx::VertexLayoutElement POSITION_LAYOUT_ELEMENTS[] = {
 static const gfx::VertexLayout POSITION_LAYOUT = {
     util::makeArrayRef(POSITION_LAYOUT_ELEMENTS), 16};
 
-enum class ImageOutputScale {
-  /// output size is size defined in the current stylization project
-  ProjectSize,
-  /// output size is a fraction of the size defined in the current stylization
-  /// project
-  FractionOfProjectSize,
-  /// output size is the size of the first input
-  SizeOfFirstInput,
-  /// output size is a fraction of the first input
-  FractionOfFirstInput,
-  /// custom output size
-  CustomSize,
-  /// output size is input size rescaled to the given aspect ratio
-  CustomAspectRatio,
-};
-
-struct ScreenSpaceContext {
-  /// Width of the viewport in pixels
-  int width;
-  /// Height of the viewport in pixels
-  int height;
-  /// Current time
-  double currentTime;
-  /// Current frame
-  int currentFrame;
-};
-
-///
-/// A node representing a screen space operation.
-///
-/// `ScreenSpaceNode`s execute in the "screen space" context.
-class ScreenSpaceNode : public Node {
-public:
-  /// Returns the body of the fragment shader.
-  util::StringRef fragCode() const;
-  /// Sets the body of the fragment shader.
-  void setFragCode(std::string code);
-
-  ///
-  bool compilationSucceeded() const { return compilationSuccess_; }
-
-  void execute(gfx::GraphicsBackend *gfx, const ScreenSpaceContext& ctx);
-
-private:
-  bool compile(gfx::GraphicsBackend *gfx);
-
-  // Fragment code to execute
-  std::string fragCode_;
-  // Generated shader pipeline. Can be null if not generated yet.
-  gfx::GraphicsPipeline pipeline_;
-  // Messages emitted by the last compilation step.
-  std::string compilationMessages_;
-  // True if last compile succeeded.
-  bool compilationSuccess_ = false;
-  // True if shaders should be recompiled.
-  bool shaderDirty_ = true;
-};
-
 util::StringRef ScreenSpaceNode::fragCode() const {}
 
 void ScreenSpaceNode::setFragCode(std::string code) {
@@ -105,12 +47,13 @@ void ScreenSpaceNode::setFragCode(std::string code) {
   compilationSuccess_ = false;
 }
 
-void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx, const ScreenSpaceContext& ctx) {
-	// allocate output image from the cache
+RenderTarget *ScreenSpaceNode::addRenderTarget(std::string name,
+                                               const gfx::ImageDesc &desc) {}
 
+void ScreenSpaceNode::setRenderTargetDesc(util::StringRef name,
+                                          const gfx::ImageDesc &desc) {}
 
-	// handling of output i
-}
+void ScreenSpaceNode::deleteRenderTarget(util::StringRef name) {}
 
 bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
 
@@ -135,11 +78,11 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
   sigDesc.hasIndexFormat = false;
   sigDesc.viewportsCount = 1;
   sigDesc.scissorsCount = 1;
-  gfx::Signature sig{gfx, sigDesc};
+  signature_ = gfx::Signature{gfx, sigDesc};
 
   // render pass
   const gfx::RenderPassTargetDesc targets[1] = {};
-  gfx::RenderPassDesc rpDesc {util::makeArrayRef(targets), nullptr};
+  gfx::RenderPassDesc rpDesc{util::makeArrayRef(targets), nullptr};
   gfx::RenderPass rp{gfx, rpDesc};
 
   try {
@@ -153,7 +96,7 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
     gfx::GraphicsPipelineDesc desc;
     desc.shaderStages.vertex = vertexShader;
     desc.shaderStages.fragment = fragmentShader;
-    desc.signature = sig;
+    desc.signature = signature_;
     desc.renderPass = rp;
     pipeline_ = gfx::GraphicsPipeline{gfx, desc};
   } catch (gfx::ShaderCompilationError e) {
@@ -173,6 +116,37 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
   }
 
   return true;
+}
+
+void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
+                              const ScreenSpaceContext &ctx) {
+  // build the constant buffer
+  ConstantBufferBuilder b;
+  // TODO push all parameters in the buffer
+  b.push(0.0f);
+  b.push(0.2f);
+  b.push(0.4f);
+  auto constantBuffer = b.create(0);
+  auto constantBufferView = gfx::ConstantBufferView{ constantBuffer, 0, b.size() };
+
+  // create the argblock
+  gfx::ArgumentBlock argblock{gfx, signature_};
+  argblock.setShaderResource(0, ctx.commonParameters);
+  argblock.setShaderResource(1, constantBufferView);
+  // TODO textures
+
+  // check if the framebuffer needs updating
+  /*uint64_t rtUpdate;
+  for (auto&& rt : renderTargets_) { 
+  }*/
+  if (!framebuffer_) {
+	  gfx::FramebufferDesc fbDesc;
+	  gfx::RenderTargetView rtv;
+	  rtv.image = renderTargets_[0]->getImage();
+	  gfx::RenderTargetView rtvs[1] = { rtv };
+	  fbDesc.colorTargets = util::makeConstArrayRef(rtvs);
+  }
+
 }
 
 } // namespace render

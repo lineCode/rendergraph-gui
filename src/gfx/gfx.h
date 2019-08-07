@@ -1,16 +1,16 @@
 #pragma once
 // Main header for the backend-agnostic graphics API
 #include "gfx/format.h"
+#include "gfx/handle.h"
 #include "gfx/sampler.h"
 #include "gfx/shader.h"
 #include "gfx/types.h"
-#include "gfx/handle.h"
 #include "util/arrayref.h"
 #include "util/stringref.h"
 #include <cstdint>
 #include <memory>
-#include <utility>
 #include <string>
+#include <utility>
 
 namespace gfx {
 
@@ -23,13 +23,13 @@ struct RenderPassTargetDesc {
 };
 
 struct RenderPassDesc {
-	util::ArrayRef<const RenderPassTargetDesc> colorTargets;
-	const RenderPassTargetDesc *depthTarget;
+  util::ArrayRef<const RenderPassTargetDesc> colorTargets;
+  const RenderPassTargetDesc *depthTarget;
 };
 
 struct FramebufferDesc {
-	util::ArrayRef<const RenderTargetView> colorTargets;
-	DepthStencilRenderTargetView *depthTarget;
+  util::ArrayRef<const RenderTargetView> colorTargets;
+  DepthStencilRenderTargetView *depthTarget;
 };
 
 /// Parameters for non-indexed draw commands.
@@ -42,25 +42,25 @@ struct DrawParams {
 
 /// Compilation log of a shader
 struct ShaderCompilationMessages {
-	std::string messages;
+  std::string messages;
 };
 
 /// Compilation log of a shader
 struct GraphicsPipelineCompilationMessages {
-	std::string messages;
+  std::string messages;
 };
-
 
 class ShaderCompilationError : public std::exception {
 public:
-	ShaderCompilationError() = default;
-	ShaderCompilationError(const char *message) : std::exception{ message } {}
+  ShaderCompilationError() = default;
+  ShaderCompilationError(const char *message) : std::exception{message} {}
 };
 
 class GraphicsPipelineCompilationError : public std::exception {
 public:
-	GraphicsPipelineCompilationError() = default;
-	GraphicsPipelineCompilationError(const char *message) : std::exception{ message } {}
+  GraphicsPipelineCompilationError() = default;
+  GraphicsPipelineCompilationError(const char *message)
+      : std::exception{message} {}
 };
 
 class GraphicsBackend {
@@ -114,8 +114,7 @@ public:
                                            IndexBufferView buf) = 0;
 
   /// Creates a new render pass.
-  virtual RenderPassHandle
-  createRenderPass(const RenderPassDesc& desc) = 0;
+  virtual RenderPassHandle createRenderPass(const RenderPassDesc &desc) = 0;
   virtual void deleteRenderPass(RenderPassHandle handle) = 0;
 
   /// Creates a new graphics pipeline.
@@ -124,8 +123,7 @@ public:
   virtual void deleteGraphicsPipeline(GraphicsPipelineHandle handle) = 0;
 
   /// Creates a new framebuffer for the given render pass.
-  virtual FramebufferHandle
-  createFramebuffer(const FramebufferDesc& desc) = 0;
+  virtual FramebufferHandle createFramebuffer(const FramebufferDesc &desc) = 0;
   virtual void deleteFramebuffer(FramebufferHandle handle) = 0;
 
   /// Upload some constant data to a GPU buffer
@@ -148,7 +146,6 @@ public:
 
 private:
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 struct ImageDeleter {
@@ -214,23 +211,22 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct FramebufferDeleter {
-	void operator()(GraphicsBackend *backend, FramebufferHandle handle) {
-		backend->deleteFramebuffer(handle);
-	}
+  void operator()(GraphicsBackend *backend, FramebufferHandle handle) {
+    backend->deleteFramebuffer(handle);
+  }
 };
 
 class Framebuffer {
 public:
-	Framebuffer() = default;
-	Framebuffer(GraphicsBackend *backend, const FramebufferDesc& desc)
-		: framebuffer{ backend, backend->createFramebuffer(desc) } {}
+  Framebuffer() = default;
+  Framebuffer(GraphicsBackend *backend, const FramebufferDesc &desc)
+      : framebuffer{backend, backend->createFramebuffer(desc)} {}
 
-	operator FramebufferHandle() { return framebuffer.get(); }
+  operator FramebufferHandle() { return framebuffer.get(); }
 
 private:
-	Handle<FramebufferHandle, FramebufferDeleter> framebuffer;
+  Handle<FramebufferHandle, FramebufferDeleter> framebuffer;
 };
-
 
 ////////////////////////////////////////////////////////////////////////////////
 struct RenderPassDeleter {
@@ -242,10 +238,8 @@ struct RenderPassDeleter {
 class RenderPass {
 public:
   RenderPass() = default;
-  RenderPass(GraphicsBackend *backend,
-             const RenderPassDesc& desc)
-      : renderPass{backend,
-                   backend->createRenderPass(desc)} {}
+  RenderPass(GraphicsBackend *backend, const RenderPassDesc &desc)
+      : renderPass{backend, backend->createRenderPass(desc)} {}
 
   operator RenderPassHandle() { return renderPass.get(); }
 
@@ -270,6 +264,68 @@ public:
 
 private:
   Handle<SignatureHandle, SignatureDeleter> signature;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct BufferDeleter {
+  void operator()(GraphicsBackend *backend, BufferHandle handle) {
+    backend->deleteBuffer(handle);
+  }
+};
+
+class Buffer {
+public:
+  Buffer() = default;
+  Buffer(GraphicsBackend *backend, const void *data, size_t size)
+      : buffer{backend, backend->createConstantBuffer(data, size)} {}
+
+  operator BufferHandle() { return buffer.get(); }
+  
+private:
+  Handle<BufferHandle, BufferDeleter> buffer;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+struct ArgumentBlockDeleter {
+  void operator()(GraphicsBackend *backend, ArgumentBlockHandle handle) {
+    backend->deleteArgumentBlock(handle);
+  }
+};
+
+class ArgumentBlock {
+public:
+  ArgumentBlock() = default;
+  ArgumentBlock(GraphicsBackend *backend, gfx::SignatureHandle signature)
+      : argblock{backend, backend->createArgumentBlock(signature)} {}
+
+  operator ArgumentBlockHandle() { return argblock.get(); }
+
+  void setArgumentBlock(int index, ArgumentBlockHandle block) {
+    argblock.backend()->argumentBlockSetArgumentBlock(argblock.get(), index,
+                                                      block);
+  }
+  void setShaderResource(int resourceIndex, SampledImageView imgView) {
+    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
+                                                       resourceIndex, imgView);
+  }
+  void setShaderResource(int resourceIndex, ConstantBufferView buf) {
+    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
+                                                       resourceIndex, buf);
+  }
+  void setShaderResource(int resourceIndex, StorageBufferView buf) {
+    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
+                                                       resourceIndex, buf);
+  }
+  void setVertexBuffer(int index, VertexBufferView buf) {
+    argblock.backend()->argumentBlockSetVertexBuffer(argblock.get(), index,
+                                                     buf);
+  }
+  void setIndexBuffer(ArgumentBlockHandle argBlock, IndexBufferView buf) {
+    argblock.backend()->argumentBlockSetIndexBuffer(argblock.get(), buf);
+  }
+
+private:
+  Handle<ArgumentBlockHandle, ArgumentBlockDeleter> argblock;
 };
 
 } // namespace gfx

@@ -19,4 +19,9 @@ ArrayRef<T> makeArrayRef(T (&a)[N]) {
 	return ArrayRef<T>(N, a);
 }
 
+template <typename T, size_t N>
+ArrayRef<const T> makeConstArrayRef(T(&a)[N]) {
+	return ArrayRef<T>(N, a);
+}
+
 } // namespace util
