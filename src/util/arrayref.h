@@ -21,7 +21,7 @@ ArrayRef<T> makeArrayRef(T (&a)[N]) {
 
 template <typename T, size_t N>
 ArrayRef<const T> makeConstArrayRef(T(&a)[N]) {
-	return ArrayRef<T>(N, a);
+	return ArrayRef<const T>(N, a);
 }
 
 } // namespace util

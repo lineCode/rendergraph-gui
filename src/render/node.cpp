@@ -8,6 +8,12 @@ util::StringRef Node::name() const {
 
 void Node::setName(std::string name) { name_ = std::move(name); }
 
+void Node::markDirty()
+{
+	dirty_ = true;
+	// TODO: propagate to children
+}
+
 Node *Node::parent() const { return parent_; }
 
 Node *Node::addChild(Ptr ptr) {

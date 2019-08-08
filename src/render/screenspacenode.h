@@ -2,6 +2,7 @@
 #include "gfx/image.h"
 #include "gfx/pipeline.h"
 #include "render/node.h"
+#include "render/rendertarget.h"
 #include <memory>
 
 namespace render {
@@ -34,36 +35,9 @@ struct ScreenSpaceContext {
 
   /// Constant buffer containing the common parameters (camera, matrices, etc.)
   gfx::ConstantBufferView commonParameters;
+  gfx::VertexBufferView quadVertices;
 };
 
-struct RenderTargetStorage {
-  gfx::ImageDesc desc;
-  gfx::Image image;
-};
-
-class RenderTarget : public Node {
-public:
-  using Ptr = std::unique_ptr<RenderTarget>;
-
-  static RenderTarget *make(ScreenSpaceNode *parent, std::string name,
-                            const gfx::ImageDesc &desc) {
-    return static_cast<RenderTarget *>(parent->addChild(
-        std::make_unique<RenderTarget>(desc, std::move(name))));
-  }
-
-  const gfx::ImageDesc& desc() const {
-	  return desc_;
-  }
-
-  gfx::ImageHandle getImage(); // TODO
-
-private:
-  RenderTarget(const gfx::ImageDesc &desc, std::string name)
-      : Node{std::move(name)}, desc_{desc} {}
-
-  gfx::ImageDesc desc_;
-  std::shared_ptr<RenderTargetStorage> storage_;
-};
 
 ///
 /// A node representing a screen space operation.
@@ -97,7 +71,6 @@ private:
   gfx::GraphicsPipeline pipeline_;
   gfx::Signature signature_;
   bool compilationSuccess_ = false;
-  // True if shaders should be recompiled.
   bool shaderDirty_ = true;
 };
 

@@ -4,7 +4,7 @@
 
 namespace render {
 
-	enum class TypeKind {
+	/*enum class TypeKind {
 		Primitive,
 		Struct,
 		Image
@@ -77,5 +77,5 @@ namespace render {
 	SVal ShaderGenerator::addGlobalParameter(util::StringRef name, SType ty, int buffer)
 	{
 		return SVal();
-	}
+	}*/
 }

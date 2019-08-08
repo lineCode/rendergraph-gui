@@ -87,7 +87,7 @@ public:
 	};
 
 	gfx::RenderPassDesc rpDesc;
-	rpDesc.colorTargets = util::ArrayRef<gfx::RenderPassTargetDesc>{ 1, rptDesc };
+	rpDesc.colorTargets = util::makeConstArrayRef(rptDesc);
 	rpDesc.depthTarget = nullptr;
 
 	renderPass_ = gfx::RenderPass{ g_.get(), rpDesc };

@@ -39,7 +39,9 @@ static const gfx::VertexLayoutElement POSITION_LAYOUT_ELEMENTS[] = {
 static const gfx::VertexLayout POSITION_LAYOUT = {
     util::makeArrayRef(POSITION_LAYOUT_ELEMENTS), 16};
 
-util::StringRef ScreenSpaceNode::fragCode() const {}
+util::StringRef ScreenSpaceNode::fragCode() const {
+  return util::StringRef{fragCode_.c_str(), fragCode_.size()};
+}
 
 void ScreenSpaceNode::setFragCode(std::string code) {
   fragCode_ = std::move(code);
@@ -48,7 +50,10 @@ void ScreenSpaceNode::setFragCode(std::string code) {
 }
 
 RenderTarget *ScreenSpaceNode::addRenderTarget(std::string name,
-                                               const gfx::ImageDesc &desc) {}
+                                               const gfx::ImageDesc &desc) {
+  // Create a new render target node and add it as a child of this node
+  return RenderTarget::make(this, name, desc);
+}
 
 void ScreenSpaceNode::setRenderTargetDesc(util::StringRef name,
                                           const gfx::ImageDesc &desc) {}
@@ -120,33 +125,44 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
 
 void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
                               const ScreenSpaceContext &ctx) {
-  // build the constant buffer
+  // build the constant (uniform) buffer
   ConstantBufferBuilder b;
   // TODO push all parameters in the buffer
   b.push(0.0f);
   b.push(0.2f);
   b.push(0.4f);
   auto constantBuffer = b.create(0);
-  auto constantBufferView = gfx::ConstantBufferView{ constantBuffer, 0, b.size() };
+  auto constantBufferView =
+      gfx::ConstantBufferView{constantBuffer, 0, b.size()};
 
   // create the argblock
-  gfx::ArgumentBlock argblock{gfx, signature_};
-  argblock.setShaderResource(0, ctx.commonParameters);
-  argblock.setShaderResource(1, constantBufferView);
+  gfx::ArgumentBlock args{gfx, signature_};
+  args.setShaderResource(0, ctx.commonParameters);
+  args.setShaderResource(1, constantBufferView);
+  args.setVertexBuffer(0, ctx.quadVertices);
   // TODO textures
 
   // check if the framebuffer needs updating
-  /*uint64_t rtUpdate;
-  for (auto&& rt : renderTargets_) { 
-  }*/
   if (!framebuffer_) {
-	  gfx::FramebufferDesc fbDesc;
-	  gfx::RenderTargetView rtv;
-	  rtv.image = renderTargets_[0]->getImage();
-	  gfx::RenderTargetView rtvs[1] = { rtv };
-	  fbDesc.colorTargets = util::makeConstArrayRef(rtvs);
+    gfx::FramebufferDesc fbDesc;
+    gfx::RenderTargetView rtv;
+    rtv.image = renderTargets_[0]->getImage(ctx);
+    gfx::RenderTargetView rtvs[1] = {rtv};
+    fbDesc.colorTargets = util::makeConstArrayRef(rtvs);
+    framebuffer_ = gfx::Framebuffer{gfx, fbDesc};
   }
 
+  // draw stuff
+  gfx::DrawParams params;
+  params.firstVertex = 0;
+  params.vertexCount = 6;
+  params.firstInstance = 0;
+  params.instanceCount = 1;
+  gfx->draw(pipeline_, framebuffer_, args, params);
+
+  // mark our outputs as dirty so that other passes that depend on them are
+  // updated.
+  renderTargets_[0]->markDirty();
 }
 
 } // namespace render
