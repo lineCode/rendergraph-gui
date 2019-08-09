@@ -72,8 +72,8 @@ static EmptyNetworkModel *staticEmptyModel() {
 // NodeGraphicsObjectPrivate
 
 NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(
-    QSizeF size, QPersistentModelIndex nodeIndex, QGraphicsItem *parent)
-    : QGraphicsObject{parent}, size_{size}, nodeIndex_{nodeIndex} {
+    QSizeF size, const Node* node, QGraphicsItem *parent)
+    : QGraphicsObject{parent}, size_{size}, node_{ node } {
   setAcceptHoverEvents(true);
   inputConnectorsWidget_ = new QGraphicsWidget{this};
   outputConnectorsWidget_ = new QGraphicsWidget{this};
@@ -131,9 +131,8 @@ void NodeGraphicsObjectPrivate::paint(QPainter *painter,
   painter->setBrush(hover_ ? Qt::gray : Qt::darkGray);
   painter->drawRoundedRect(QRectF{QPointF{0.0, 0.0}, size_}, 7.0, 7.0);
 
-  auto model = static_cast<const AbstractNetworkModel *>(nodeIndex_.model());
-  auto numInputConnectors = model->inputConnectorCount(nodeIndex_);
-  auto numOutputConnectors = model->outputConnectorCount(nodeIndex_);
+  auto numInputConnectors = 1;	// TODO
+  auto numOutputConnectors = 1;	// TODO
 
   auto bnd = boundingRect();
   QRectF textRegion{QPointF{size_.width() + 12.0, 0.0},
@@ -148,8 +147,9 @@ void NodeGraphicsObjectPrivate::paint(QPainter *painter,
   }
   painter->setFont(font);
   QFontMetricsF metrics{font};
+  auto nodeName = node_->name();
   QString elided =
-      metrics.elidedText(QString::asprintf("NODE %i", nodeIndex_.row()),
+      metrics.elidedText(QString::fromUtf8(nodeName.ptr, nodeName.len),
                          Qt::ElideRight, textRegion.width());
   QTextOption opt{Qt::AlignVCenter};
   opt.setWrapMode(QTextOption::NoWrap);
@@ -171,18 +171,16 @@ void NodeGraphicsObjectPrivate::contextMenuEvent(
 }
 
 void NodeGraphicsObjectPrivate::inputConnectorAdded(int index) {
-  auto model = static_cast<const AbstractNetworkModel *>(nodeIndex_.model());
   auto item = new NodeConnectorGraphicsObjectPrivate{
-      model->inputConnector(nodeIndex_, index),
+      index,
       AbstractNetworkModel::ConnectionType::Input, inputConnectorsWidget_};
   inputConnectors_.insert(index, item);
   updateConnectorLayout(inputConnectors_);
 }
 
 void NodeGraphicsObjectPrivate::outputConnectorAdded(int index) {
-  auto model = static_cast<const AbstractNetworkModel *>(nodeIndex_.model());
   auto item = new NodeConnectorGraphicsObjectPrivate{
-      model->outputConnector(nodeIndex_, index),
+      index,
       AbstractNetworkModel::ConnectionType::Output, outputConnectorsWidget_};
   outputConnectors_.insert(index, item);
   updateConnectorLayout(outputConnectors_);
@@ -222,7 +220,7 @@ void NodeConnectionGraphicsItemPrivate::updatePositions() {
 //=====================================================================================
 // NodeConnectorGraphicsObjectPrivate
 NodeConnectorGraphicsObjectPrivate::NodeConnectorGraphicsObjectPrivate(
-    QPersistentModelIndex connectorIndex,
+    int connectorIndex,
     AbstractNetworkModel::ConnectionType type, QGraphicsItem *parent)
     : QGraphicsObject{parent}, type_{type}, connectorIndex_{connectorIndex} {
   setAcceptHoverEvents(true);
@@ -271,131 +269,72 @@ void NodeConnectorGraphicsObjectPrivate::hoverLeaveEvent(
 // NetworkScene
 
 NetworkScene::NetworkScene(QObject *parent)
-    : QGraphicsScene{parent}, model_{staticEmptyModel()} {}
+    : QGraphicsScene{parent}, network_{nullptr} {}
 
-void NetworkScene::setModel(AbstractNetworkModel *model) {
-  auto empty = staticEmptyModel();
-  if (model == model_) { // no change
-    return;
-  }
-
-  if (model && model_ != empty) {
-    disconnect(model_, SIGNAL(nodeAdded(int)), this,
-               SLOT(nodeAddedPrivate(int)));
-    disconnect(model_, SIGNAL(nodeRemoved(int)), this,
-               SLOT(nodeRemovedPrivate(int)));
-    disconnect(model_, SIGNAL(inputConnectorAdded(const QModelIndex &, int)),
-               this,
-               SLOT(inputConnectorAddedPrivate(const QModelIndex &, int)));
-    disconnect(model_, SIGNAL(inputConnectorRemoved(const QModelIndex &, int)),
-               this,
-               SLOT(inputConnectorRemovedPrivate(const QModelIndex &, int)));
-    disconnect(model_, SIGNAL(outputConnectorAdded(const QModelIndex &, int)),
-               this,
-               SLOT(outputConnectorAddedPrivate(const QModelIndex &, int)));
-    disconnect(model_, SIGNAL(outputConnectorRemoved(const QModelIndex &, int)),
-               this,
-               SLOT(outputConnectorRemovedPrivate(const QModelIndex &, int)));
-    disconnect(
-        model_,
-        SIGNAL(connectionAdded(const QModelIndex &, const QModelIndex &)), this,
-        SLOT(connectionAddedPrivate(const QModelIndex &, const QModelIndex &)));
-    disconnect(
-        model_,
-        SIGNAL(connectionRemoved(const QModelIndex &, const QModelIndex &)),
-        this,
-        SLOT(connectionRemovedPrivate(const QModelIndex &,
-                                      const QModelIndex &)));
-  }
-
-  model_ = (model == nullptr) ? empty : model;
-
-  if (model) {
-    connect(model_, SIGNAL(nodeAdded(int)), this, SLOT(nodeAddedPrivate(int)));
-    connect(model_, SIGNAL(nodeRemoved(int)), this,
-            SLOT(nodeRemovedPrivate(int)));
-    connect(model_, SIGNAL(inputConnectorAdded(const QModelIndex &, int)), this,
-            SLOT(inputConnectorAddedPrivate(const QModelIndex &, int)));
-    connect(model_, SIGNAL(inputConnectorRemoved(const QModelIndex &, int)),
-            this, SLOT(inputConnectorRemovedPrivate(const QModelIndex &, int)));
-    connect(model_, SIGNAL(outputConnectorAdded(const QModelIndex &, int)),
-            this, SLOT(outputConnectorAddedPrivate(const QModelIndex &, int)));
-    connect(model_, SIGNAL(outputConnectorRemoved(const QModelIndex &, int)),
-            this,
-            SLOT(outputConnectorRemovedPrivate(const QModelIndex &, int)));
-    connect(
-        model_,
-        SIGNAL(connectionAdded(const QModelIndex &, const QModelIndex &)), this,
-        SLOT(connectionAddedPrivate(const QModelIndex &, const QModelIndex &)));
-    connect(model_,
-            SIGNAL(connectionRemoved(const QModelIndex &, const QModelIndex &)),
-            this,
-            SLOT(connectionRemovedPrivate(const QModelIndex &,
-                                          const QModelIndex &)));
-  }
-
+void NetworkScene::setNetwork(const Node *network) {
+  // whatever
   // reset();
 }
 
-QAbstractItemModel *NetworkScene::model() const {
-  return model_ == staticEmptyModel() ? 0 : model_;
+const Node *NetworkScene::network() const {
+	return network_;
 }
 
-QList<QPersistentModelIndex> NetworkScene::selectedNodes() const {
+QList<const Node*> NetworkScene::selectedNodes() const {
   auto selection = selectedItems();
-  QList<QPersistentModelIndex> indices;
+  QList<const Node*> nodes;
   for (auto s : selection) {
     if (auto obj = s->toGraphicsObject()) {
       if (auto node = qobject_cast<NodeGraphicsObjectPrivate *>(obj)) {
-        indices.push_back(node->nodeIndex_);
+		  nodes.push_back(node->node_);
       }
     }
   }
-  return indices;
+  return nodes;
 }
 
-void NetworkScene::nodeAddedPrivate(int index) {
-  qDebug() << "NetworkView::nodeAddedPrivate(" << index << ")";
-  createNodeVisual(index);
+void NetworkScene::nodeAdded(const Node* node) {
+  qDebug() << "NetworkView::nodeAddedPrivate(" << node << ")";
+  createNodeVisual(node);
 }
 
-void NetworkScene::nodeRemovedPrivate(int index) {
-  qDebug() << "NetworkView::nodeRemovedPrivate(" << index << ")";
-  delete nodes[index];
+void NetworkScene::nodeRemoved(const Node* node) {
+  qDebug() << "NetworkView::nodeRemovedPrivate(" << node << ")";
+  delete nodes_[node];
   // connections will be removed before
-  nodes.erase(nodes.begin() + index);
+  nodes_.erase(node);
 }
 
-void NetworkScene::nodeDeleteRequested(const QPersistentModelIndex &index) {
+/*
+void NetworkScene::nodeDeleteRequested(const Node* node) {
   auto i = index.row();
   model_->removeNode(i);
-}
+}*/
 
-void NetworkScene::inputConnectorAddedPrivate(const QModelIndex &parent,
+void NetworkScene::inputConnectorAdded(const Node* node,
                                               int index) {
-  nodes[parent.row()]->inputConnectorAdded(index);
+  nodes_[node]->inputConnectorAdded(index);
 }
 
-void NetworkScene::outputConnectorAddedPrivate(const QModelIndex &parent,
+void NetworkScene::outputConnectorAdded(const Node* node,
                                                int index) {
-  nodes[parent.row()]->outputConnectorAdded(index);
+	nodes_[node]->outputConnectorAdded(index);
 }
 
-void NetworkScene::inputConnectorRemovedPrivate(const QModelIndex &parent,
+void NetworkScene::inputConnectorRemoved(const Node* node,
                                                 int index) {
-  nodes[parent.row()]->outputConnectorAdded(index);
+	nodes_[node]->outputConnectorAdded(index);
 }
-void NetworkScene::outputConnectorRemovedPrivate(const QModelIndex &parent,
+void NetworkScene::outputConnectorRemoved(const Node* node,
                                                  int index) {
-  nodes[parent.row()]->outputConnectorRemoved(index);
+	nodes_[node]->outputConnectorRemoved(index);
 }
 
-void NetworkScene::connectionAddedPrivate(const QModelIndex &fromConnector,
-                                          const QModelIndex &toConnector) {
-  auto srcNode = nodes[fromConnector.parent().row()];
-  auto srcConnector = srcNode->outputConnectors_[fromConnector.row()];
-  auto dstNode = nodes[toConnector.parent().row()];
-  auto dstConnector = dstNode->inputConnectors_[toConnector.row()];
+void NetworkScene::connectionAdded(const Node* from, const Node* to) {
+  auto srcNode = nodes_[from];
+  auto srcConnector = srcNode->outputConnectors_[0];		// TODO
+  auto dstNode = nodes_[to];
+  auto dstConnector = dstNode->inputConnectors_[0];		// TODO
 
   auto connection =
       new NodeConnectionGraphicsItemPrivate{srcConnector, dstConnector};
@@ -405,14 +344,13 @@ void NetworkScene::connectionAddedPrivate(const QModelIndex &fromConnector,
   connection->updatePositions();
 }
 
-void NetworkScene::connectionRemovedPrivate(const QModelIndex &fromConnector,
-                                            const QModelIndex &toConnector) {
+void NetworkScene::connectionRemoved(const Node* from, const Node* to) {
   connections_.erase(
       std::remove_if(connections_.begin(), connections_.end(),
                      [=](NodeConnectionGraphicsItemPrivate *item) {
                        auto b =
-                           item->srcConn_->connectorIndex_ == fromConnector &&
-                           item->dstConn_->connectorIndex_ == toConnector;
+                           item->srcConn_->connectorIndex_ == 0 &&		// TODO
+                           item->dstConn_->connectorIndex_ == 0;
                        // qDebug() << "from=" << fromConnector << " to=" <<
                        // toConnector << " src=" <<
                        // item->srcConn_->connectorIndex_ << " dest=" <<
@@ -426,15 +364,14 @@ void NetworkScene::connectionRemovedPrivate(const QModelIndex &fromConnector,
       connections_.end());
 }
 
-void NetworkScene::createNodeVisual(int index) {
+void NetworkScene::createNodeVisual(const Node* node) {
   auto n = new NodeGraphicsObjectPrivate{
-      QSizeF{NODE_WIDTH, NODE_HEIGHT},
-      QPersistentModelIndex{model_->nodeIndex(index)}};
-  n->setPos(index * 300.0, 0.0);
+      QSizeF{NODE_WIDTH, NODE_HEIGHT}, node};
+  n->setPos(0.0, 0.0);			// TODO
   addItem(n);
-  nodes.insert(nodes.begin() + index, n);
-  connect(n, SIGNAL(deleteRequested(const QPersistentModelIndex &)), this,
-          SLOT(nodeDeleteRequested(const QPersistentModelIndex &)));
+  nodes_.insert({ node, n });
+  //connect(n, &NodeGraphicsObjectPrivate::deleteRequested, this, &NetworkScene::nodeD		// TODO
+  //        SLOT(nodeDeleteRequested(const QPersistentModelIndex &)));
   n->setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable);
 }
 
@@ -447,7 +384,7 @@ void NetworkScene::updateConnections() {
 //=====================================================================================
 // NetworkView
 
-NetworkView::NetworkView(QWidget *parent) : QGraphicsView{parent} {
+NetworkView::NetworkView(const Node *network, QWidget *parent) : QGraphicsView{parent} {
   setRenderHints(QPainter::Antialiasing);
   setSceneRect(-6000.0, -6000.0, 12000.0, 12000.0);
   setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -460,6 +397,7 @@ NetworkView::NetworkView(QWidget *parent) : QGraphicsView{parent} {
 }
 
 NetworkView::~NetworkView() {}
+
 void NetworkView::drawBackground(QPainter *painter, const QRectF &rect) {
   QPen pen{Qt::black, 1.0};
   pen.setWidth(12);
@@ -516,11 +454,11 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
                    << c->connectorIndex_ << ")";
           if (connectionStart_->type_ ==
               AbstractNetworkModel::ConnectionType::Output) {
-            Q_EMIT connectionRequest(connectionStart_->connectorIndex_,
-                                     c->connectorIndex_);
+            //Q_EMIT connectionRequest(connectionStart_->connconnectorIndex_,	// TODO
+            //                         c->connectorIndex_);
           } else {
-            Q_EMIT connectionRequest(c->connectorIndex_,
-                                     connectionStart_->connectorIndex_);
+            // Q_EMIT connectionRequest(c->connectorIndex_,	
+            //                         connectionStart_->connectorIndex_);		// TODO
           }
         }
       }

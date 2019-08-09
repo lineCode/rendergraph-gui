@@ -45,6 +45,7 @@ struct ScreenSpaceContext {
 /// `ScreenSpaceNode`s execute in the "screen space" context.
 class ScreenSpaceNode : public Node {
 public:
+	ScreenSpaceNode(std::string name);
   //------ Fragment shader ------
 
   /// Returns the body of the fragment shader.
@@ -59,6 +60,8 @@ public:
 
   bool compilationSucceeded() const { return compilationSuccess_; }
   void execute(gfx::GraphicsBackend *gfx, const ScreenSpaceContext &ctx);
+
+  static ScreenSpaceNode* make(Node* parent, std::string name);
 
 private:
   bool compile(gfx::GraphicsBackend *gfx);

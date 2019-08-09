@@ -29,6 +29,7 @@ add_subdirectory(ext/filesystem-master)
 file(GLOB SOURCES 
     src/*.cpp
     src/ui/*.cpp 
+    src/ui/nodes/*.cpp 
     src/ui/QtAwesome/*.cpp
     src/util/*.cpp
     src/render/*.cpp
@@ -38,6 +39,7 @@ file(GLOB SOURCES
 file(GLOB HEADERS 
     src/*.h
     src/ui/*.h 
+    src/ui/nodes/*.h 
     src/util/*.h
     src/render/*.h
     src/gfx/*.h

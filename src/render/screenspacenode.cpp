@@ -165,4 +165,14 @@ void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
   renderTargets_[0]->markDirty();
 }
 
+ScreenSpaceNode::ScreenSpaceNode(std::string name) : Node{ std::move(name) } {
+
+}
+
+ScreenSpaceNode * ScreenSpaceNode::make(Node * parent, std::string name)
+{
+	return static_cast<ScreenSpaceNode *>(
+		parent->addChild(std::make_unique<ScreenSpaceNode>(std::move(name))));
+}
+
 } // namespace render

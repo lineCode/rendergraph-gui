@@ -18,6 +18,7 @@ Node *Node::parent() const { return parent_; }
 
 Node *Node::addChild(Ptr ptr) {
   auto p = ptr.get();
+  p->parent_ = this;
   children_.push_back(std::move(ptr));
   return p;
 }

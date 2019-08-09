@@ -2,6 +2,7 @@
 #include "QtAwesome/QtAwesome.h"
 #include "ui/connectdialog.h"
 #include "util/log.h"
+#include "ui/nodes/nodeparams.h"
 #include <QAction>
 #include <QMenu>
 #include <QMenuBar>
@@ -17,10 +18,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput = new RenderOutputView;
   renderOutput->show();
 
-  networkView = new NetworkView;
-  networkView->setModel(&networkModel);
+
+  // root graph node
+  root_ = std::make_unique<render::Node>("root");
+
+  networkView = new NetworkView{ root_.get() };
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
-  networkModel.insertNode(0);
   connect(networkView, SIGNAL(customContextMenuRequested(const QPoint &)), this,
           SLOT(showNetworkViewContextMenu(const QPoint &)));
   connect(
@@ -72,15 +75,22 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   // dock panels
   setDockNestingEnabled(true);
 
-  auto networkViewDock = new QDockWidget{ tr("Network view") };
-  auto networkViewDockWidget = new QWidget;
-  networkViewDockWidget->setLayout(layout);
-  networkViewDock->setWidget(networkViewDockWidget);
-  addDockWidget(Qt::RightDockWidgetArea, networkViewDock);
+  auto networkViewDockWidget = new QDockWidget{ tr("Network view") };
+  auto networkViewPanel = new QWidget;
+  networkViewPanel->setLayout(layout);
+  networkViewDockWidget->setWidget(networkViewPanel);
+  addDockWidget(Qt::RightDockWidgetArea, networkViewDockWidget);
+
+  auto paramDockWidget = new QDockWidget{ tr("Network view") };
+  paramPanel_ = new QWidget;
+  //paramPanel->setLayout(layout);
+  paramDockWidget->setWidget(paramPanel_);
+  addDockWidget(Qt::LeftDockWidgetArea, paramDockWidget);
   
   // status bar
   connectionStatus = new QLabel{"Status: Disconnected"};
   statusBar()->addPermanentWidget(connectionStatus);
+
 }
 
 void MainWindow::exit() {
@@ -134,14 +144,16 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
 
 void MainWindow::deleteSelectedNodes() {
   auto selectedNodes = networkView->selectedNodes();
+
+  // TODO
+  /*
   for (const QPersistentModelIndex &n : selectedNodes) {
-    networkModel.removeNode(n.row());
-  }
+	networkModel.removeNode(n.row());
+  }*/
 }
 
-void MainWindow::addConnection(QPersistentModelIndex fromConnector,
-                               QPersistentModelIndex toConnector) {
-  networkModel.addConnection(fromConnector, toConnector);
+void MainWindow::addConnection(const Node* fromConnector, const Node* toConnector) {
+  //networkModel.addConnection(fromConnector, toConnector);
 }
 
 void MainWindow::scaleUp() {
@@ -153,14 +165,15 @@ void MainWindow::scaleDown() {
 }
 
 void MainWindow::addNode() {
-  networkModel.insertNode(0);
-  networkModel.insertInputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertInputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertInputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertInputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertInputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertOutputConnector(networkModel.nodeIndex(0), 0);
-  networkModel.insertOutputConnector(networkModel.nodeIndex(0), 0);
+  auto nodeA = render::ScreenSpaceNode::make(root_.get(), "nodeA");
+  auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
+  auto nodeB = render::ScreenSpaceNode::make(root_.get(), "nodeB");
+  auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
+  render::Param::make(nodeA, "testParam", "Test parameter", 0.0);
+  render::Param::make(nodeA, "testParam2", "Test parameter2", 0.0);
+  nodeA_UI->rebuildParamUI(paramPanel_);
+  networkView->nodeAdded(nodeA);
+  networkView->nodeAdded(nodeB);
 }
 
 MainWindow::~MainWindow() {}

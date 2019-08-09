@@ -11,6 +11,10 @@ struct StringRef {
   StringRef(const char *s, size_t len) : ptr{s}, len{std::strlen(s)} {}
   StringRef(const std::string &s) : ptr{s.c_str()}, len{s.size()} {}
 
+  std::string toStdString() const {
+	  return std::string{ ptr,len };
+  }
+
   size_t len;
   const char *ptr;
 };

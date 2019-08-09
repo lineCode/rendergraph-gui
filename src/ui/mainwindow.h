@@ -29,8 +29,7 @@ private Q_SLOTS:
   void addNode();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
-  void addConnection(QPersistentModelIndex fromConnector,
-                     QPersistentModelIndex toConnector);
+  void addConnection(const Node* fromConnector, const Node* toConnector);
 
 private:
   QAction* connectToServerAct;
@@ -42,9 +41,9 @@ private:
   QListView *listView;
   NetworkView *networkView;
   RenderOutputView* renderOutput;
+  QWidget* paramPanel_;
 
   QLabel* connectionStatus;
-  StandardNetworkModel networkModel;
   int nodeIdCounter = 0;
   bool connected_ = false;  
   std::unique_ptr<client::RendergraphClient> client_;

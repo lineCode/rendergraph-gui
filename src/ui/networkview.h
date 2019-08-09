@@ -1,5 +1,6 @@
 #pragma once
 #include "abstractnetworkmodel.h"
+#include "render/node.h"
 #include <QAbstractItemModel>
 #include <QGraphicsLineItem>
 #include <QGraphicsLinearLayout>
@@ -9,8 +10,11 @@
 #include <QGraphicsView>
 #include <QGraphicsWidget>
 #include <QPersistentModelIndex>
+#include <unordered_map>
 
 class NetworkView;
+
+using render::Node;
 
 //=============================================================================
 class NodeConnectorGraphicsObjectPrivate : public QGraphicsObject {
@@ -18,7 +22,7 @@ class NodeConnectorGraphicsObjectPrivate : public QGraphicsObject {
 public:
   friend class NetworkScene;
   friend class NetworkView;
-  NodeConnectorGraphicsObjectPrivate(QPersistentModelIndex connectorIndex,
+  NodeConnectorGraphicsObjectPrivate(int connectorIndex,
                                      AbstractNetworkModel::ConnectionType type,
                                      QGraphicsItem *parent = nullptr);
   virtual ~NodeConnectorGraphicsObjectPrivate() {}
@@ -31,7 +35,7 @@ public:
 
 protected:
   AbstractNetworkModel::ConnectionType type_;
-  QPersistentModelIndex connectorIndex_;
+  int connectorIndex_;
   bool hover_ = false;
 };
 
@@ -41,7 +45,7 @@ class NodeGraphicsObjectPrivate : public QGraphicsObject {
 public:
   friend class NetworkScene;
   friend class NetworkView;
-  NodeGraphicsObjectPrivate(QSizeF size, QPersistentModelIndex nodeIndex,
+  NodeGraphicsObjectPrivate(QSizeF size, const Node *node,
                             QGraphicsItem *parent = nullptr);
   virtual ~NodeGraphicsObjectPrivate() {}
 
@@ -59,7 +63,7 @@ private Q_SLOTS:
 private:
   QSizeF size_;
   bool hover_ = false;
-  QPersistentModelIndex nodeIndex_;
+  const Node *node_;
   QGraphicsWidget *inputConnectorsWidget_;
   QGraphicsWidget *outputConnectorsWidget_;
   QList<NodeConnectorGraphicsObjectPrivate *> inputConnectors_;
@@ -101,30 +105,29 @@ public:
   friend class NetworkView;
   NetworkScene(QObject *parent = nullptr);
 
-  void setModel(AbstractNetworkModel *model);
-  QAbstractItemModel *model() const;
-  void createNodeVisual(int index);
-  QList<QPersistentModelIndex> selectedNodes() const;
+  void setNetwork(const Node *node);
+  const Node *network() const;
+
+  void createNodeVisual(const Node *node);
+
+  QList<const Node *> selectedNodes() const;
 
 Q_SIGNALS:
 
 private Q_SLOTS:
-  void nodeAddedPrivate(int index);
-  void nodeRemovedPrivate(int index);
-  void nodeDeleteRequested(const QPersistentModelIndex &index);
-  void inputConnectorAddedPrivate(const QModelIndex &parent, int index);
-  void outputConnectorAddedPrivate(const QModelIndex &parent, int index);
-  void inputConnectorRemovedPrivate(const QModelIndex &parent, int index);
-  void outputConnectorRemovedPrivate(const QModelIndex &parent, int index);
-  void connectionAddedPrivate(const QModelIndex &fromConnector,
-                              const QModelIndex &toConnector);
-  void connectionRemovedPrivate(const QModelIndex &fromConnector,
-                                const QModelIndex &toConnector);
+  void nodeAdded(const Node *node);
+  void nodeRemoved(const Node *node);
+  void inputConnectorAdded(const Node *node, int index);
+  void outputConnectorAdded(const Node *node, int index);
+  void inputConnectorRemoved(const Node *node, int index);
+  void outputConnectorRemoved(const Node *node, int index);
+  void connectionAdded(const Node *fromNode, const Node *toNode);
+  void connectionRemoved(const Node *fromNode, const Node *toNode);
 
 private:
   void updateConnections();
-  AbstractNetworkModel *model_;
-  std::vector<NodeGraphicsObjectPrivate *> nodes;
+  const Node *network_;
+  std::unordered_map<const Node *, NodeGraphicsObjectPrivate *> nodes_;
   std::vector<NodeConnectionGraphicsItemPrivate *> connections_;
 };
 
@@ -135,20 +138,36 @@ public:
   friend class NodeGraphicsObjectPrivate;
   friend class NodeConnectorGraphicsObjectPrivate;
 
-  NetworkView(QWidget *parent = nullptr);
+  NetworkView(const Node *network = nullptr, QWidget *parent = nullptr);
   ~NetworkView();
 
-  void setModel(AbstractNetworkModel *model) { scene_.setModel(model); }
-
-  QAbstractItemModel *model() const { return scene_.model(); }
-
-  QList<QPersistentModelIndex> selectedNodes() const {
-    return scene_.selectedNodes();
-  }
+  void setNetwork(render::Node *network) { scene_.setNetwork(network); }
+  QList<const Node *> selectedNodes() const { return scene_.selectedNodes(); }
 
 Q_SIGNALS:
-  void connectionRequest(QPersistentModelIndex fromConnector,
-                         QPersistentModelIndex toConnector);
+  void connectionRequest(const Node *fromNode, const Node *toNode);
+
+public Q_SLOTS:
+  void nodeAdded(const Node *node) { scene_.nodeAdded(node); }
+  void nodeRemoved(const Node *node) { scene_.nodeRemoved(node); }
+  void inputConnectorAdded(const Node *node, int index) {
+    scene_.inputConnectorAdded(node, index);
+  }
+  void outputConnectorAdded(const Node *node, int index) {
+    scene_.outputConnectorAdded(node, index);
+  }
+  void inputConnectorRemoved(const Node *node, int index) {
+    scene_.inputConnectorRemoved(node, index);
+  }
+  void outputConnectorRemoved(const Node *node, int index) {
+    scene_.outputConnectorRemoved(node, index);
+  }
+  void connectionAdded(const Node *fromNode, const Node *toNode) {
+    scene_.connectionAdded(fromNode, toNode);
+  }
+  void connectionRemoved(const Node *fromNode, const Node *toNode) {
+    scene_.connectionRemoved(fromNode, toNode);
+  }
 
 protected:
   void mousePressEvent(QMouseEvent *) override;
