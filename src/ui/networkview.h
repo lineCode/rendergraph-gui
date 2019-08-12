@@ -45,7 +45,7 @@ class NodeGraphicsObjectPrivate : public QGraphicsObject {
 public:
   friend class NetworkScene;
   friend class NetworkView;
-  NodeGraphicsObjectPrivate(QSizeF size, const Node *node,
+  NodeGraphicsObjectPrivate(QSizeF size, Node *node,
                             QGraphicsItem *parent = nullptr);
   virtual ~NodeGraphicsObjectPrivate() {}
 
@@ -63,7 +63,7 @@ private Q_SLOTS:
 private:
   QSizeF size_;
   bool hover_ = false;
-  const Node *node_;
+  Node *node_;
   render::Observer::Ptr nodeObserver_;
   QGraphicsWidget *inputConnectorsWidget_;
   QGraphicsWidget *outputConnectorsWidget_;
@@ -109,27 +109,27 @@ public:
   void setNetwork(Node *node);
   const Node *network() const;
 
-  void createNodeVisual(const Node *node);
+  void createNodeVisual(Node *node);
 
-  QVector<const Node *> selectedNodes() const;
+  QVector<Node *> selectedNodes() const;
 
 Q_SIGNALS:
 
 private Q_SLOTS:
-  void nodeAdded(const Node *node);
-  void nodeRemoved(const Node *node);
-  void inputConnectorAdded(const Node *node, int index);
-  void outputConnectorAdded(const Node *node, int index);
-  void inputConnectorRemoved(const Node *node, int index);
-  void outputConnectorRemoved(const Node *node, int index);
-  void connectionAdded(const Node *fromNode, const Node *toNode);
-  void connectionRemoved(const Node *fromNode, const Node *toNode);
+  void nodeAdded(Node *node);
+  void nodeRemoved(Node *node);
+  void inputConnectorAdded(Node *node, int index);
+  void outputConnectorAdded(Node *node, int index);
+  void inputConnectorRemoved(Node *node, int index);
+  void outputConnectorRemoved(Node *node, int index);
+  void connectionAdded(Node *fromNode, Node *toNode);
+  void connectionRemoved(Node *fromNode, Node *toNode);
 
 private:
   void updateConnections();
   Node *network_;
   render::Observer::Ptr networkObserver_;
-  std::unordered_map<const Node *, NodeGraphicsObjectPrivate *> nodes_;
+  std::unordered_map<Node *, NodeGraphicsObjectPrivate *> nodes_;
   std::vector<NodeConnectionGraphicsItemPrivate *> connections_;
 };
 
@@ -140,34 +140,34 @@ public:
   friend class NodeGraphicsObjectPrivate;
   friend class NodeConnectorGraphicsObjectPrivate;
 
-  NetworkView(const Node *network = nullptr, QWidget *parent = nullptr);
+  NetworkView(Node *network = nullptr, QWidget *parent = nullptr);
   ~NetworkView();
 
-  void setNetwork(render::Node *network) { scene_.setNetwork(network); }
-  QVector<const Node *> selectedNodes() const { return scene_.selectedNodes(); }
+  void setNetwork(Node *network) { scene_.setNetwork(network); }
+  QVector<Node *> selectedNodes() const { return scene_.selectedNodes(); }
 
 Q_SIGNALS:
   void connectionRequest(const Node *fromNode, const Node *toNode);
 
 public Q_SLOTS:
-  void nodeAdded(const Node *node) { scene_.nodeAdded(node); }
-  void nodeRemoved(const Node *node) { scene_.nodeRemoved(node); }
-  void inputConnectorAdded(const Node *node, int index) {
+  void nodeAdded(Node *node) { scene_.nodeAdded(node); }
+  void nodeRemoved(Node *node) { scene_.nodeRemoved(node); }
+  void inputConnectorAdded(Node *node, int index) {
     scene_.inputConnectorAdded(node, index);
   }
-  void outputConnectorAdded(const Node *node, int index) {
+  void outputConnectorAdded(Node *node, int index) {
     scene_.outputConnectorAdded(node, index);
   }
-  void inputConnectorRemoved(const Node *node, int index) {
+  void inputConnectorRemoved(Node *node, int index) {
     scene_.inputConnectorRemoved(node, index);
   }
-  void outputConnectorRemoved(const Node *node, int index) {
+  void outputConnectorRemoved(Node *node, int index) {
     scene_.outputConnectorRemoved(node, index);
   }
-  void connectionAdded(const Node *fromNode, const Node *toNode) {
+  void connectionAdded(Node *fromNode, Node *toNode) {
     scene_.connectionAdded(fromNode, toNode);
   }
-  void connectionRemoved(const Node *fromNode, const Node *toNode) {
+  void connectionRemoved(Node *fromNode, Node *toNode) {
     scene_.connectionRemoved(fromNode, toNode);
   }
 

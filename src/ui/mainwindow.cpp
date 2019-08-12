@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
+
   connect(networkView, SIGNAL(customContextMenuRequested(const QPoint &)), this,
           SLOT(showNetworkViewContextMenu(const QPoint &)));
   connect(
@@ -141,12 +142,12 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
 
 void MainWindow::deleteSelectedNodes() {
   auto selectedNodes = networkView->selectedNodes();
-  root_->deleteNodes(util::ArrayRef<const Node *const>{
+  root_->deleteNodes(util::ArrayRef<Node *const>{
       (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
-void MainWindow::addConnection(const Node *fromConnector,
-                               const Node *toConnector) {
+void MainWindow::addConnection(Node *fromConnector,
+                               Node *toConnector) {
   // networkModel.addConnection(fromConnector, toConnector);
 }
 

@@ -72,9 +72,13 @@ static EmptyNetworkModel *staticEmptyModel() {
 // NodeGraphicsObjectPrivate
 
 NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size,
-                                                     const Node *node,
+                                                     Node *node,
                                                      QGraphicsItem *parent)
-    : QGraphicsObject{parent}, size_{size}, node_{node} {
+    : QGraphicsObject{parent}, size_{size}, node_{node} 
+{
+	nodeObserver_ = render::Observer::make(node, [this](const render::EventData& e) {
+		// TODO
+	});
   setAcceptHoverEvents(true);
   inputConnectorsWidget_ = new QGraphicsWidget{this};
   outputConnectorsWidget_ = new QGraphicsWidget{this};
@@ -294,9 +298,9 @@ void NetworkScene::setNetwork(Node *network) {
 
 const Node *NetworkScene::network() const { return network_; }
 
-QVector<const Node *> NetworkScene::selectedNodes() const {
+QVector<Node *> NetworkScene::selectedNodes() const {
   auto selection = selectedItems();
-  QVector<const Node *> nodes;
+  QVector<Node *> nodes;
   for (auto s : selection) {
     if (auto obj = s->toGraphicsObject()) {
       if (auto node = qobject_cast<NodeGraphicsObjectPrivate *>(obj)) {
@@ -307,12 +311,12 @@ QVector<const Node *> NetworkScene::selectedNodes() const {
   return nodes;
 }
 
-void NetworkScene::nodeAdded(const Node *node) {
+void NetworkScene::nodeAdded(Node *node) {
   qDebug() << "NetworkView::nodeAddedPrivate(" << node << ")";
   createNodeVisual(node);
 }
 
-void NetworkScene::nodeRemoved(const Node *node) {
+void NetworkScene::nodeRemoved(Node *node) {
   qDebug() << "NetworkView::nodeRemovedPrivate(" << node << ")";
   delete nodes_[node];
   // connections will be removed before
@@ -325,22 +329,22 @@ void NetworkScene::nodeDeleteRequested(const Node* node) {
   model_->removeNode(i);
 }*/
 
-void NetworkScene::inputConnectorAdded(const Node *node, int index) {
+void NetworkScene::inputConnectorAdded(Node *node, int index) {
   nodes_[node]->inputConnectorAdded(index);
 }
 
-void NetworkScene::outputConnectorAdded(const Node *node, int index) {
+void NetworkScene::outputConnectorAdded(Node *node, int index) {
   nodes_[node]->outputConnectorAdded(index);
 }
 
-void NetworkScene::inputConnectorRemoved(const Node *node, int index) {
+void NetworkScene::inputConnectorRemoved(Node *node, int index) {
   nodes_[node]->outputConnectorAdded(index);
 }
-void NetworkScene::outputConnectorRemoved(const Node *node, int index) {
+void NetworkScene::outputConnectorRemoved(Node *node, int index) {
   nodes_[node]->outputConnectorRemoved(index);
 }
 
-void NetworkScene::connectionAdded(const Node *from, const Node *to) {
+void NetworkScene::connectionAdded(Node *from, Node *to) {
   auto srcNode = nodes_[from];
   auto srcConnector = srcNode->outputConnectors_[0]; // TODO
   auto dstNode = nodes_[to];
@@ -354,7 +358,7 @@ void NetworkScene::connectionAdded(const Node *from, const Node *to) {
   connection->updatePositions();
 }
 
-void NetworkScene::connectionRemoved(const Node *from, const Node *to) {
+void NetworkScene::connectionRemoved(Node *from, Node *to) {
   connections_.erase(
       std::remove_if(connections_.begin(), connections_.end(),
                      [=](NodeConnectionGraphicsItemPrivate *item) {
@@ -373,7 +377,7 @@ void NetworkScene::connectionRemoved(const Node *from, const Node *to) {
       connections_.end());
 }
 
-void NetworkScene::createNodeVisual(const Node *node) {
+void NetworkScene::createNodeVisual(Node *node) {
   auto n = new NodeGraphicsObjectPrivate{QSizeF{NODE_WIDTH, NODE_HEIGHT}, node};
   n->setPos(0.0, 0.0); // TODO
   addItem(n);
@@ -393,7 +397,7 @@ void NetworkScene::updateConnections() {
 //=====================================================================================
 // NetworkView
 
-NetworkView::NetworkView(const Node *network, QWidget *parent)
+NetworkView::NetworkView(Node *network, QWidget *parent)
     : QGraphicsView{parent} {
   setRenderHints(QPainter::Antialiasing);
   setSceneRect(-6000.0, -6000.0, 12000.0, 12000.0);
@@ -404,6 +408,7 @@ NetworkView::NetworkView(const Node *network, QWidget *parent)
   setViewportUpdateMode(QGraphicsView::FullViewportUpdate);
   // setContextMenuPolicy(Qt::CustomContextMenu);
   setScene(&scene_);
+  scene_.setNetwork(network);
 }
 
 NetworkView::~NetworkView() {}

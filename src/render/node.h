@@ -22,20 +22,20 @@ enum class EventType {
 };
 
 struct EventData {
-  const Node *source;
+  Node *source;
   EventType type;
   union {
     struct {
-      const Node *node;
+      Node *node;
     } childAdded;
     struct {
-      const Node *node;
+      Node *node;
     } childRemoved;
     struct {
-      const Node *to;
+      Node *to;
     } referenceAdded;
     struct {
-      const Node *to;
+      Node *to;
     } referenceRemoved;
   } u;
 };
@@ -71,8 +71,8 @@ public:
   Node *addChild(Ptr ptr);
 
   /// Deletes child nodes.
-  void deleteNode(const Node *node);
-  void deleteNodes(util::ArrayRef<const Node *const> nodes);
+  void deleteNode(Node *node);
+  void deleteNodes(util::ArrayRef<Node * const> nodes);
 
   /// Returns a vector containing all child nodes of the specified type
   template <typename T,
@@ -93,11 +93,11 @@ public:
 
 protected:
   // child added
-  void onChildAdded(const Node *node);
+  void onChildAdded(Node *node);
   // child about to be removed
-  void onChildRemoved(const Node *node);
-  void onReferenceAdded(const Node *to);
-  void onReferenceRemoved(const Node *to);
+  void onChildRemoved(Node *node);
+  void onReferenceAdded(Node *to);
+  void onReferenceRemoved(Node *to);
   void onNodeDeleted();
 
   void notify(const EventData &e);

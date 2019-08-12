@@ -6,6 +6,9 @@
 #include <cstdint>
 
 int main(int argc, char **argv) {
+	//std::vector<int> test;
+	//test.erase(test.end(), test.end());
+
 	// Create window
 	auto app = new QApplication(argc, argv);
 	QApplication::setStyle(QStyleFactory::create("Fusion"));

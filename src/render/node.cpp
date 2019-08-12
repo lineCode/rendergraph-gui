@@ -5,6 +5,11 @@ namespace render {
 Node::~Node() {
   // this node is being deleted, signal observers
   onNodeDeleted();
+  // delete children now so that they can send the ChildRemoved to the parent
+  children_.clear();
+  if (parent_) {
+    parent_->onChildRemoved(this);
+  }
 }
 
 util::StringRef Node::name() const {
@@ -27,12 +32,12 @@ Node *Node::addChild(Ptr ptr) {
   return p;
 }
 
-void Node::deleteNode(const Node *node) {
-  const Node *nodes[1] = {node};
+void Node::deleteNode(Node *node) {
+  Node *nodes[1] = {node};
   deleteNodes(util::makeConstArrayRef(nodes));
 }
 
-void Node::deleteNodes(util::ArrayRef<const Node *const> nodes) {
+void Node::deleteNodes(util::ArrayRef<Node *const> nodes) {
   auto it = std::remove_if(children_.begin(), children_.end(),
                            [nodes](const std::unique_ptr<Node> &ptr) {
                              for (auto n : nodes) {
@@ -51,28 +56,32 @@ void Node::disconnect() const {
 }
 
 // child added
-void Node::onChildAdded(const Node *node) {
-	// TODO
+void Node::onChildAdded(Node *node) {
+  // TODO
 }
 
 // child about to be removed
-void Node::onChildRemoved(const Node *node) {
-	// TODO
+void Node::onChildRemoved(Node *node) {
+  EventData e;
+  e.source = this;
+  e.type = EventType::ChildRemoved;
+  e.u.childRemoved.node = node;
+  notify(e);
 }
 
-void Node::onReferenceAdded(const Node *to) {
-	// TODO
+void Node::onReferenceAdded(Node *to) {
+  // TODO
 }
 
-void Node::onReferenceRemoved(const Node *to) {
-	// TODO
+void Node::onReferenceRemoved(Node *to) {
+  // TODO
 }
 
 void Node::onNodeDeleted() {
-	EventData e;
-	e.source = this;
-	e.type = EventType::NodeDeleted;
-	notify(e);
+  EventData e;
+  e.source = this;
+  e.type = EventType::NodeDeleted;
+  notify(e);
 }
 
 void Node::notify(const EventData &e) {
