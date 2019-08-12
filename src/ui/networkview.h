@@ -64,6 +64,7 @@ private:
   QSizeF size_;
   bool hover_ = false;
   const Node *node_;
+  render::Observer::Ptr nodeObserver_;
   QGraphicsWidget *inputConnectorsWidget_;
   QGraphicsWidget *outputConnectorsWidget_;
   QList<NodeConnectorGraphicsObjectPrivate *> inputConnectors_;
@@ -105,12 +106,12 @@ public:
   friend class NetworkView;
   NetworkScene(QObject *parent = nullptr);
 
-  void setNetwork(const Node *node);
+  void setNetwork(Node *node);
   const Node *network() const;
 
   void createNodeVisual(const Node *node);
 
-  QList<const Node *> selectedNodes() const;
+  QVector<const Node *> selectedNodes() const;
 
 Q_SIGNALS:
 
@@ -126,7 +127,8 @@ private Q_SLOTS:
 
 private:
   void updateConnections();
-  const Node *network_;
+  Node *network_;
+  render::Observer::Ptr networkObserver_;
   std::unordered_map<const Node *, NodeGraphicsObjectPrivate *> nodes_;
   std::vector<NodeConnectionGraphicsItemPrivate *> connections_;
 };
@@ -142,7 +144,7 @@ public:
   ~NetworkView();
 
   void setNetwork(render::Node *network) { scene_.setNetwork(network); }
-  QList<const Node *> selectedNodes() const { return scene_.selectedNodes(); }
+  QVector<const Node *> selectedNodes() const { return scene_.selectedNodes(); }
 
 Q_SIGNALS:
   void connectionRequest(const Node *fromNode, const Node *toNode);

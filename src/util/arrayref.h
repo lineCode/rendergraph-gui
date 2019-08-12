@@ -12,6 +12,15 @@ template <typename T> struct ArrayRef {
 
   T &operator[](std::size_t idx) { return data[idx]; }
   const T &operator[](std::size_t idx) const { return data[idx]; }
+
+  T* begin() const {
+	  return data;
+  }
+
+  T* end() const {
+	  return data + len;
+  }
+
 };
 
 template <typename T, size_t N>

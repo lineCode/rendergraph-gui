@@ -1,16 +1,16 @@
 #include "ui/mainwindow.h"
 #include "QtAwesome/QtAwesome.h"
 #include "ui/connectdialog.h"
-#include "util/log.h"
 #include "ui/nodes/nodeparams.h"
+#include "util/log.h"
 #include <QAction>
+#include <QDockWidget>
 #include <QMenu>
 #include <QMenuBar>
+#include <QOpenGLContext>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QVBoxLayout>
-#include <QDockWidget>
-#include <QOpenGLContext>
 
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -18,11 +18,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput = new RenderOutputView;
   renderOutput->show();
 
-
   // root graph node
   root_ = std::make_unique<render::Node>("root");
 
-  networkView = new NetworkView{ root_.get() };
+  networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
   connect(networkView, SIGNAL(customContextMenuRequested(const QPoint &)), this,
           SLOT(showNetworkViewContextMenu(const QPoint &)));
@@ -42,17 +41,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // actions
   deleteNodeAct =
-	  new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
+      new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
   connect(deleteNodeAct, SIGNAL(triggered()), this,
-	  SLOT(deleteSelectedNodes()));
+          SLOT(deleteSelectedNodes()));
   addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
   connectToServerAct =
-	  new QAction{ qtAwesome()->icon(fa::wifi), "Connect to server", this };
+      new QAction{qtAwesome()->icon(fa::wifi), "Connect to server", this};
   connect(connectToServerAct, SIGNAL(triggered()), this,
-	  SLOT(connectToServer()));
-  exitAct = new QAction{ "Exit" };
+          SLOT(connectToServer()));
+  exitAct = new QAction{"Exit"};
   connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
-  showRenderOutputAct = new QAction{ "Show render output" };
+  showRenderOutputAct = new QAction{"Show render output"};
   connect(showRenderOutputAct, SIGNAL(triggered()), renderOutput, SLOT(show()));
 
   // menu
@@ -71,31 +70,29 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   layout->addWidget(buttonScaleUp);
   layout->addWidget(buttonScaleDown);
 
-
   // dock panels
   setDockNestingEnabled(true);
 
-  auto networkViewDockWidget = new QDockWidget{ tr("Network view") };
+  auto networkViewDockWidget = new QDockWidget{tr("Network view")};
   auto networkViewPanel = new QWidget;
   networkViewPanel->setLayout(layout);
   networkViewDockWidget->setWidget(networkViewPanel);
   addDockWidget(Qt::RightDockWidgetArea, networkViewDockWidget);
 
-  auto paramDockWidget = new QDockWidget{ tr("Network view") };
+  auto paramDockWidget = new QDockWidget{tr("Network view")};
   paramPanel_ = new QWidget;
-  //paramPanel->setLayout(layout);
+  // paramPanel->setLayout(layout);
   paramDockWidget->setWidget(paramPanel_);
   addDockWidget(Qt::LeftDockWidgetArea, paramDockWidget);
-  
+
   // status bar
   connectionStatus = new QLabel{"Status: Disconnected"};
   statusBar()->addPermanentWidget(connectionStatus);
-
 }
 
 void MainWindow::exit() {
-	renderOutput->close();
-	close();
+  renderOutput->close();
+  close();
 }
 
 void MainWindow::connectToServer() {
@@ -122,7 +119,7 @@ void MainWindow::connectToServer() {
     auto versionReply = client_->send(client::method::GetVersion{});
     util::log("versionReply status={} version={}",
               static_cast<int>(versionReply.status), versionReply.version);
-	// got a valid reply
+    // got a valid reply
   } catch (client::RendergraphClient::TimeoutError) {
     util::log("Timeout when establishing connection");
   }
@@ -144,16 +141,13 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
 
 void MainWindow::deleteSelectedNodes() {
   auto selectedNodes = networkView->selectedNodes();
-
-  // TODO
-  /*
-  for (const QPersistentModelIndex &n : selectedNodes) {
-	networkModel.removeNode(n.row());
-  }*/
+  root_->deleteNodes(util::ArrayRef<const Node *const>{
+      (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
-void MainWindow::addConnection(const Node* fromConnector, const Node* toConnector) {
-  //networkModel.addConnection(fromConnector, toConnector);
+void MainWindow::addConnection(const Node *fromConnector,
+                               const Node *toConnector) {
+  // networkModel.addConnection(fromConnector, toConnector);
 }
 
 void MainWindow::scaleUp() {
