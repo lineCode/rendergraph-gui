@@ -88,7 +88,7 @@ public:
   Value() : ty_{Type::Empty} {}
 
   Value(util::StringRef str) : ty_{Type::String} {
-    new (&v_.string) std::string{str.ptr, str.len};
+    new (&v_.string) std::string{str.to_string()};
   }
 
   Value(double doubleVal) : ty_{Type::Real} { v_.doubleVal = doubleVal; }
@@ -107,8 +107,8 @@ public:
   }
 
   int64_t asInt() const {
-	  checkType(Type::Int);
-	  return v_.intVal;
+    checkType(Type::Int);
+    return v_.intVal;
   }
 
   Object &asObject() {
@@ -195,15 +195,14 @@ public:
 private:
   void checkType(Type ty) const {
     if (ty_ != ty) {
-		throw TypeError{};
+      throw TypeError{};
     }
   }
 
   union Inner {
-	  Inner() : intVal{ 0 } {
-	  }
+    Inner() : intVal{0} {}
 
-	  ~Inner() {}
+    ~Inner() {}
 
     double doubleVal;
     int64_t intVal;
@@ -217,6 +216,5 @@ private:
   Type ty_;
   Inner v_;
 };
-
 
 } // namespace util

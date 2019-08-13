@@ -52,7 +52,9 @@ void ScreenSpaceNode::setFragCode(std::string code) {
 RenderTarget *ScreenSpaceNode::addRenderTarget(std::string name,
                                                const gfx::ImageDesc &desc) {
   // Create a new render target node and add it as a child of this node
-  return RenderTarget::make(this, name, desc);
+  // auto rt = RenderTarget::make(this, name, desc);
+  // return rt;
+  return nullptr;
 }
 
 void ScreenSpaceNode::setRenderTargetDesc(util::StringRef name,
@@ -162,17 +164,65 @@ void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
 
   // mark our outputs as dirty so that other passes that depend on them are
   // updated.
-  renderTargets_[0]->markDirty();
+  // renderTargets_[0]->markDirty();
 }
 
-ScreenSpaceNode::ScreenSpaceNode(std::string name) : Node{ std::move(name) } {
-
+// Container::value_type must be unique_ptr<T> or whatever
+template <typename Container, typename T>
+void eraseRemoveUniquePtr(Container &container, const T *val) {
+  static_assert(
+      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value, "Container value type must be unique_ptr<T>");
+  auto it = std::remove_if(container.begin(), container.end(),
+                           [val](const std::unique_ptr<T> &ptr) {
+                             if (ptr.get() == val) {
+                               return true;
+                             }
+                             return false;
+                           });
+  container.erase(it, container.end());
 }
 
-ScreenSpaceNode * ScreenSpaceNode::make(Node * parent, std::string name)
-{
-	return static_cast<ScreenSpaceNode *>(
-		parent->addChild(std::make_unique<ScreenSpaceNode>(std::move(name))));
+template <typename Container, typename T>
+T *pushUniquePtr(Container &container, std::unique_ptr<T> ptr) {
+  static_assert(
+      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value, "Container value type must be unique_ptr<T>");
+  auto p = ptr.get();
+  container.push_back(std::move(ptr));
+  return p;
+}
+
+Input *ScreenSpaceNode::addInput(std::string name, std::string initPath) {
+  return pushUniquePtr(inputs_, Input::make(this, name));
+}
+
+void ScreenSpaceNode::deleteInput(Input *input) {
+  eraseRemoveUniquePtr(inputs_, input);
+}
+
+Output *ScreenSpaceNode::addOutput(std::string name) {
+  return pushUniquePtr(outputs_, Output::make(this, name));
+}
+
+void ScreenSpaceNode::deleteOutput(Output *output) {
+  eraseRemoveUniquePtr(outputs_, output);
+}
+
+Param *ScreenSpaceNode::addParam(std::string name, std::string description,
+                                 double initValue) {
+  return pushUniquePtr(params_, Param::make(this, std::move(name),
+                                            std::move(description), initValue));
+}
+
+void ScreenSpaceNode::deleteParam(Param *param) {
+  eraseRemoveUniquePtr(params_, param);
+}
+
+ScreenSpaceNode::ScreenSpaceNode(Network *parent, std::string name)
+    : Node{std::move(name), parent} {}
+
+ScreenSpaceNode *ScreenSpaceNode::make(Network *parent, std::string name) {
+  return static_cast<ScreenSpaceNode *>(parent->addChild(
+      std::make_unique<ScreenSpaceNode>(parent, std::move(name))));
 }
 
 } // namespace render

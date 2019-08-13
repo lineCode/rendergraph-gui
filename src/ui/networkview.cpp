@@ -22,63 +22,25 @@ const double NODE_HEIGHT = 40.0;
 const double NODE_LABEL_WIDTH = 200.0;
 const double CONNECTOR_RADIUS = 7.0;
 
-//=====================================================================================
-// EmptyNetworkModel
-
-class EmptyNetworkModel : public AbstractNetworkModel {
-public:
-  explicit EmptyNetworkModel(QObject *parent = 0)
-      : AbstractNetworkModel(parent) {}
-
-  QModelIndex index(int, int, const QModelIndex &) const override {
-    return QModelIndex();
-  }
-  QModelIndex parent(const QModelIndex &) const override {
-    return QModelIndex();
-  }
-  int rowCount(const QModelIndex &) const override { return 0; }
-  int columnCount(const QModelIndex &) const override { return 0; }
-  bool hasChildren(const QModelIndex &) const override { return false; }
-  QVariant data(const QModelIndex &, int) const override { return QVariant(); }
-
-  int nodeCount() const override { return 0; }
-  QModelIndex nodeIndex(int index) const override { return {}; }
-  int inputConnectorCount(const QModelIndex &parent) const override {
-    return 0;
-  };
-  QModelIndex inputConnector(const QModelIndex &parent,
-                             int index) const override {
-    return {};
-  };
-  int outputConnectorCount(const QModelIndex &parent) const override {
-    return 0;
-  }
-  QModelIndex outputConnector(const QModelIndex &parent,
-                              int index) const override {
-    return {};
-  };
-  int connectionCount(const QModelIndex &parent) const override { return 0; };
-  QModelIndex connection(const QModelIndex &parent, int index) const override {
-    return {};
-  };
-};
-
-static EmptyNetworkModel *staticEmptyModel() {
-  static EmptyNetworkModel m;
-  return &m;
-}
 
 //=====================================================================================
 // NodeGraphicsObjectPrivate
 
-NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size,
-                                                     Node *node,
+// Constructor
+NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
                                                      QGraphicsItem *parent)
-    : QGraphicsObject{parent}, size_{size}, node_{node} 
-{
-	nodeObserver_ = render::Observer::make(node, [this](const render::EventData& e) {
-		// TODO
-	});
+    : QGraphicsObject{parent}, size_{size}, node_{node} {
+  nodeObserver_ =
+      render::Observer::make(node, [this](const render::EventData &e) {
+        switch (e.type) {
+        case render::EventType::InputAdded:
+			this->inputConnectorAdded(e.u.inputAdded.index);
+          break;
+        case render::EventType::InputRemoved:
+			this->inputConnectorRemoved(e.u.inputRemoved.index);
+          break;
+        }
+      });
   setAcceptHoverEvents(true);
   inputConnectorsWidget_ = new QGraphicsWidget{this};
   outputConnectorsWidget_ = new QGraphicsWidget{this};
@@ -154,7 +116,7 @@ void NodeGraphicsObjectPrivate::paint(QPainter *painter,
   QFontMetricsF metrics{font};
   auto nodeName = node_->name();
   QString elided =
-      metrics.elidedText(QString::fromUtf8(nodeName.ptr, nodeName.len),
+      metrics.elidedText(QString::fromUtf8(nodeName.data(), nodeName.size()),
                          Qt::ElideRight, textRegion.width());
   QTextOption opt{Qt::AlignVCenter};
   opt.setWrapMode(QTextOption::NoWrap);
@@ -209,6 +171,7 @@ void NodeGraphicsObjectPrivate::updateConnectorLayout(
   }
 }
 
+
 //=====================================================================================
 // NodeConnectionGraphicsItemPrivate
 void NodeConnectionGraphicsItemPrivate::updatePositions() {
@@ -221,6 +184,7 @@ void NodeConnectionGraphicsItemPrivate::updatePositions() {
   p.cubicTo(srcPos + QPointF{0, 30}, dstPos + QPointF{0, -30}, dstPos);
   setPath(p);
 }
+
 
 //=====================================================================================
 // NodeConnectorGraphicsObjectPrivate
@@ -270,6 +234,7 @@ void NodeConnectorGraphicsObjectPrivate::hoverLeaveEvent(
   update();
 }
 
+
 //=====================================================================================
 // NetworkScene
 
@@ -282,21 +247,21 @@ void NetworkScene::setNetwork(Node *network) {
   network_ = network;
   networkObserver_ =
       render::Observer::make(network_, [this](const render::EventData &e) {
-                         switch (e.type) {
-                         case render::EventType::ChildAdded:
-                           nodeAdded(e.u.childAdded.node);
-                           break;
-                         case render::EventType::ChildRemoved:
-                           nodeRemoved(e.u.childRemoved.node);
-                           break;
-                         case render::EventType::NodeDeleted:
-                         default:
-                           break;
-                         }
-                       });
+        switch (e.type) {
+        case render::EventType::ChildAdded:
+          nodeAdded(e.u.childAdded.node);
+          break;
+        case render::EventType::ChildRemoved:
+          nodeRemoved(e.u.childRemoved.node);
+          break;
+        case render::EventType::NodeDeleted:
+        default:
+          break;
+        }
+      });
 }
 
-const Node *NetworkScene::network() const { return network_; }
+Node *NetworkScene::network() const { return network_; }
 
 QVector<Node *> NetworkScene::selectedNodes() const {
   auto selection = selectedItems();
@@ -474,7 +439,8 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
             //                         c->connectorIndex_);
           } else {
             // Q_EMIT connectionRequest(c->connectorIndex_,
-            //                         connectionStart_->connectorIndex_);		//
+            //                         connectionStart_->connectorIndex_);
+            //                         //
             //                         TODO
           }
         }

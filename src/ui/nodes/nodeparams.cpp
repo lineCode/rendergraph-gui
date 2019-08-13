@@ -6,22 +6,17 @@
 namespace ui {
 namespace nodes {
 
-NodeParams::NodeParams(NetworkView &networkView)
-    : render::Node{"editor"}, networkView_{ networkView }
-{
-}
+NodeParams::NodeParams(Node &node, NetworkView &networkView)
+    : node_{node}, networkView_{networkView} {}
 
-void NodeParams::rebuildParamUI(QWidget *parentWidget) {
-
-  // create the user interface of the node
-  Node *p = Node::parent();
-
-  auto params = p->findChildrenByType<render::Param>();
+void NodeParams::rebuild() {
 
   QFormLayout *layout = new QFormLayout{};
-  parentWidget->setLayout(layout);
+  setLayout(layout);
 
-  for (auto &&param : params) {
+  int np = node_.paramCount();
+  for (int i = 0; i < np; ++i) {
+    auto param = node_.param(i);
     auto name = param->name();
     auto spinBox = new QDoubleSpinBox{};
     spinBox->setMinimum(0.0);
@@ -32,14 +27,8 @@ void NodeParams::rebuildParamUI(QWidget *parentWidget) {
     connect(spinBox, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
             [param](double newValue) { param->setValue(newValue); });
 
-    layout->addRow(QString::fromUtf8(name.ptr, name.len), spinBox);
+    layout->addRow(QString::fromUtf8(name.data(), name.size()), spinBox);
   }
-}
-
-NodeParams *NodeParams::make(render::Node *parent,
-	NetworkView &networkView) {
-  auto nodeParams = std::make_unique<NodeParams>(networkView);
-  return static_cast<NodeParams *>(parent->addChild(std::move(nodeParams)));
 }
 
 } // namespace nodes

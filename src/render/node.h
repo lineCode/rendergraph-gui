@@ -1,6 +1,5 @@
 #pragma once
-#include "gfx/gfx.h"
-#include <algorithm>
+#include "util/stringref.h"
 #include <functional>
 #include <map>
 #include <string>
@@ -12,6 +11,9 @@ class Node;
 class Param;
 class NodeRef;
 class Observer;
+class Network;
+class Input;
+class Output;
 
 enum class EventType {
   ChildAdded,
@@ -19,6 +21,8 @@ enum class EventType {
   ReferenceAdded,
   ReferenceRemoved,
   NodeDeleted,
+  InputAdded,
+  InputRemoved
 };
 
 struct EventData {
@@ -37,10 +41,20 @@ struct EventData {
     struct {
       Node *to;
     } referenceRemoved;
+    struct {
+      int index;
+    } inputAdded;
+    struct {
+      int index;
+    } inputRemoved;
   } u;
 };
 
 using EventHandler = void(const EventData &);
+
+using ParamMap = std::map<std::string, Param *>;
+using InputMap = std::map<std::string, Input *>;
+using OutputMap = std::map<std::string, Output *>;
 
 /// Base class for all nodes.
 ///
@@ -49,12 +63,17 @@ using EventHandler = void(const EventData &);
 class Node {
   friend class NodeRef;
   friend class Observer;
+  friend class Input;
+  friend class Output;
+  friend class Param;
+  friend class Network;
 
 public:
   using Ptr = std::unique_ptr<Node>;
 
-  Node() {}
-  Node(std::string name) : name_{name} {}
+  Node(Network *parent) : parent_{parent} {}
+
+  Node(std::string name, Network *parent) : name_{name}, parent_{parent} {}
   virtual ~Node();
 
   // Name
@@ -65,28 +84,11 @@ public:
   void markDirty();
 
   /// Returns the parent of this node.
-  Node *parent() const;
+  Network *parent() const;
 
-  /// Adds a child node
-  Node *addChild(Ptr ptr);
-
-  /// Deletes child nodes.
-  void deleteNode(Node *node);
-  void deleteNodes(util::ArrayRef<Node * const> nodes);
-
-  /// Returns a vector containing all child nodes of the specified type
-  template <typename T,
-            typename = std::enable_if_t<std::is_base_of<Node, T>::value>>
-  std::vector<T *> findChildrenByType() {
-    std::vector<T *> results;
-    for (auto &&child : children_) {
-      auto pchild = child.get();
-      if (auto derived = dynamic_cast<T *>(pchild)) {
-        results.push_back(derived);
-      }
-    }
-    return results;
-  }
+  /// Parameters
+  int paramCount() const;
+  Param *param(int index);
 
   // sever all connections
   void disconnect() const;
@@ -99,73 +101,46 @@ protected:
   void onReferenceAdded(Node *to);
   void onReferenceRemoved(Node *to);
   void onNodeDeleted();
+  void onInputAdded(int index);
+  void onInputRemoved(int index);
+  void onOutputAdded(int index);
+  void onOutputRemoved(int index);
 
   void notify(const EventData &e);
 
 private:
-  void addReference(NodeRef *ref) { references_.push_back(ref); }
-
-  void removeReference(NodeRef *ref) {
-    auto it = std::remove(references_.begin(), references_.end(), ref);
-    references_.erase(it, references_.end());
-  }
-
-  void addObserver(Observer *obs) {
-    if (notifying_) {
-      observersToAdd_.push_back(obs);
-    } else {
-      observers_.push_back(obs);
-    }
-  }
-
-  void removeObserver(Observer *obs) {
-    if (notifying_) {
-      observersToRemove_.push_back(obs);
-    } else {
-      auto it = std::remove(observers_.begin(), observers_.end(), obs);
-      observers_.erase(it, observers_.end());
-    }
-  }
+  void addParameter(Param *p);
+  void removeParameter(Param *p);
+  void addReference(NodeRef *ref);
+  void removeReference(NodeRef *ref);
+  void addObserver(Observer *obs);
+  void removeObserver(Observer *obs);
+  void insertInput(Input *input, int index = -1);
+  void removeInput(Input *input);
+  void insertOutput(Output *output, int index = -1);
+  void removeOutput(Output *output);
 
   bool dirty_ = true;
   std::string name_;
-  Node *parent_ =
-      nullptr; // parent of this node, or nullptr if this is the root node
-  std::vector<Ptr> children_;             // nodes contained inside this node
-  std::map<std::string, Param *> params_; // node parameters
 
-  std::vector<NodeRef *> references_; // nodes referenced by this node (which
-                                      // nodes this node depends on?)
-  std::vector<Node *>
-      dependents_; // nodes that depend on this node (they are notified when
-                   // this node is being changed or deleted)
+  // parent of this node, or nullptr if this is the root network
+  Network *parent_ = nullptr;
 
+  std::vector<Param *> params_;
+  std::vector<Input *> inputs_;
+  std::vector<Output *> outputs_;
+
+  // nodes referenced by this node (which nodes this node depends on?)
+  std::vector<NodeRef *> references_;
+  // nodes that depend on this node (they are notified when
+  // this node is being changed or deleted)
+  std::vector<Node *> dependents_;
+
+  // observers
   int notifying_ = 0;
   std::vector<Observer *> observers_;
   std::vector<Observer *> observersToAdd_;
   std::vector<Observer *> observersToRemove_;
-};
-
-class Observer {
-  friend class Node;
-
-public:
-  using Ptr = std::unique_ptr<Observer>;
-
-  Observer(Node *observed, std::function<EventHandler> callback)
-      : observed_{observed}, callback_{std::move(callback)} {
-    observed_->addObserver(this);
-  }
-
-  ~Observer() { observed_->addObserver(this); }
-
-  static Ptr make(Node *observed, std::function<EventHandler> callback) {
-    return std::make_unique<Observer>(observed, std::move(callback));
-  }
-
-private:
-  Node *observed_;
-  std::function<EventHandler> callback_;
 };
 
 /// A reference to a node (by name).
@@ -173,7 +148,7 @@ class NodeRef {
 public:
   using Ptr = std::unique_ptr<NodeRef>;
 
-  NodeRef(Node *owner, std::string path)
+  NodeRef(Node *owner, std::string path = "")
       : owner_{owner}, path_{std::move(path)} {
     owner_->addReference(this);
   }
@@ -192,29 +167,35 @@ private:
   std::string path_;
 };
 
-/// Parameters are nodes that are displayed in the
-/// parameter panel.
-class Param : public Node {
+/// Parameters are displayed in the parameter panel.
+class Param {
 public:
-  Param(std::string name, std::string description, double initValue)
-      : Node{std::move(name)}, val_{initValue}, description_{
-                                                    std::move(description_)} {}
-
-  double value() const { return val_; }
-
-  void setValue(double newValue) { val_ = newValue; }
-
-  static Param *make(Node *parent, std::string name, std::string description,
-                     double initValue) {
-    auto p = std::make_unique<Param>(std::move(name), std::move(description),
-                                     std::move(initValue));
-    return static_cast<Param *>(parent->addChild(std::move(p)));
+  using Ptr = std::unique_ptr<Param>;
+  Param(Node *owner, std::string name, std::string description,
+        double initValue)
+      : owner_{owner}, name_{name}, val_{initValue}, description_{std::move(
+                                                         description_)} {
+    owner_->addParameter(this);
   }
 
+  ~Param() { owner_->removeParameter(this); }
+
+  util::StringRef name() const {
+	  return name_;
+  }
+  double value() const { return val_; }
+  void setValue(double newValue) { val_ = newValue; }
   util::StringRef description() const { return description_; }
 
+  static Ptr make(Node *owner, std::string name, std::string description,
+                  double initValue) {
+    return std::make_unique<Param>(owner, std::move(name),
+                                   std::move(description), initValue);
+  }
+
 private:
-  // TODO support more things
+  Node *owner_;
+  std::string name_;
   double val_;
   std::string description_;
 };

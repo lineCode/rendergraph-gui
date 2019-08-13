@@ -26,7 +26,7 @@ RendergraphClient::RendergraphClient(util::StringRef address)
 RendergraphClient::~RendergraphClient() {}
 
 bool RendergraphClient::connect(util::StringRef address) {
-  std::string addr{address.ptr, address.len};
+  std::string addr = address.to_string();
   util::log("[RendergraphClient::connect] endpoint={}", addr.c_str());
   d_->socket.connect(addr.c_str());
   return true;
@@ -45,7 +45,7 @@ std::string RendergraphClient::sendRaw(util::StringRef str) {
   if (!d_->socket.connected())
     throw std::runtime_error{"socket disconnected"};
 
-  d_->socket.send(str.ptr, str.len);
+  d_->socket.send(str.data(), str.size());
 
   zmq::message_t msg;
   if (!d_->socket.recv(&msg)) {

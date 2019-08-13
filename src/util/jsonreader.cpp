@@ -197,7 +197,7 @@ struct JsonReader::JsonReaderPrivate {
 JsonReader::JsonReader() : JsonReader("") {}
 
 JsonReader::JsonReader(const StringRef &src)
-    : d{std::make_unique<JsonReaderPrivate>(src.ptr)} {}
+    : d{std::make_unique<JsonReaderPrivate>(src.data())} {}
 
 JsonReader::~JsonReader() {}
 

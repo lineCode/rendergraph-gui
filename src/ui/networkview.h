@@ -1,6 +1,7 @@
 #pragma once
 #include "abstractnetworkmodel.h"
 #include "render/node.h"
+#include "render/observer.h"
 #include <QAbstractItemModel>
 #include <QGraphicsLineItem>
 #include <QGraphicsLinearLayout>
@@ -107,7 +108,7 @@ public:
   NetworkScene(QObject *parent = nullptr);
 
   void setNetwork(Node *node);
-  const Node *network() const;
+  Node *network() const;
 
   void createNodeVisual(Node *node);
 

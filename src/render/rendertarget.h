@@ -1,4 +1,5 @@
 #pragma once
+#include "gfx/gfx.h"
 #include "gfx/image.h"
 #include "node.h"
 
@@ -12,19 +13,14 @@ struct RenderTargetStorage {
   gfx::Image image;
 };
 
-class RenderTarget : public Node {
-  struct CtorTag {
-    explicit CtorTag() = default;
-  };
-
+class RenderTarget {
 public:
   using Ptr = std::unique_ptr<RenderTarget>;
 
-  RenderTarget(CtorTag, const gfx::ImageDesc &desc, std::string name)
-      : Node{std::move(name)}, desc_{desc} {}
-
-  static RenderTarget *make(ScreenSpaceNode *parent, std::string name,
-                            const gfx::ImageDesc &desc);
+  RenderTarget(const gfx::ImageDesc &desc)
+      : desc_{desc} 
+  {
+  }
 
   const gfx::ImageDesc &desc() const { return desc_; }
 

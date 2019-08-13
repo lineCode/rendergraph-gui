@@ -52,6 +52,6 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/ FILES ${SOURCES} ${HEADERS} ${RES
 
 add_executable(rendergraph_gui ${SOURCES} ${HEADERS} ${RESOURCES})
 target_include_directories(rendergraph_gui PRIVATE src/)
-target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS} ${OPENIMAGEIO_INCLUDE_DIR})
+target_include_directories(rendergraph_gui PRIVATE ${RAPIDJSON_INCLUDE_DIRS} ${OPENIMAGEIO_INCLUDE_DIR} ext/string-view-lite)
 target_link_libraries(rendergraph_gui PRIVATE OpenGL::GL Qt5::Widgets libzmq cppzmq fmt-header-only ghc_filesystem ${OPENIMAGEIO_LIBRARIES})
 

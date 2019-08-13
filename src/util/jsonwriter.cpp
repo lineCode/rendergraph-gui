@@ -12,10 +12,10 @@ struct JsonWriter::JsonWriterPrivate {
   void endObject() { writer.EndObject(); }
   void beginArray() { writer.StartArray(); }
   void endArray() { writer.EndArray(); }
-  void name(StringRef name) { writer.Key(name.ptr, name.len, true); }
+  void name(StringRef name) { writer.Key(name.data(), name.size(), true); }
   void value(int64_t val) { writer.Int64(val); }
   void value(double val) { writer.Double(val); }
-  void value(util::StringRef str) { writer.String(str.ptr, str.len, true); }
+  void value(util::StringRef str) { writer.String(str.data(), str.size(), true); }
 
   rapidjson::OStreamWrapper wrapper;
   rapidjson::Writer<rapidjson::OStreamWrapper> writer;

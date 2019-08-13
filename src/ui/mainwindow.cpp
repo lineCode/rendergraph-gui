@@ -19,7 +19,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput->show();
 
   // root graph node
-  root_ = std::make_unique<render::Node>("root");
+  root_ = std::make_unique<render::Network>("root", nullptr);
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -142,7 +142,7 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
 
 void MainWindow::deleteSelectedNodes() {
   auto selectedNodes = networkView->selectedNodes();
-  root_->deleteNodes(util::ArrayRef<Node *const>{
+  root_->deleteChildren(util::ArrayRef<Node *const>{
       (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
@@ -161,14 +161,23 @@ void MainWindow::scaleDown() {
 
 void MainWindow::addNode() {
   auto nodeA = render::ScreenSpaceNode::make(root_.get(), "nodeA");
-  auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
+  //auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
   auto nodeB = render::ScreenSpaceNode::make(root_.get(), "nodeB");
-  auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
-  render::Param::make(nodeA, "testParam", "Test parameter", 0.0);
-  render::Param::make(nodeA, "testParam2", "Test parameter2", 0.0);
-  nodeA_UI->rebuildParamUI(paramPanel_);
-  networkView->nodeAdded(nodeA);
-  networkView->nodeAdded(nodeB);
+  //auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
+   
+  nodeA->addParam("testParam", "Test parameter", 0.0);
+  nodeA->addParam("testParam2", "Test parameter2", 0.0);
+
+  nodeA->addInput("input0");
+  nodeA->addInput("input1");
+  nodeA->addInput("input2");
+
+  nodeB->addInput("input0");
+  nodeB->addInput("input1");
+
+  //nodeA_UI->rebuildParamUI(paramPanel_);
+  //networkView->nodeAdded(nodeA);
+  //networkView->nodeAdded(nodeB);
 }
 
 MainWindow::~MainWindow() {}

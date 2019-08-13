@@ -4,21 +4,16 @@
 namespace ui {
 namespace nodes {
 
-class NodeParams : public QObject, public render::Node {
+class NodeParams : public QWidget {
   Q_OBJECT
 public:
-  using Ptr = std::unique_ptr<NodeParams>;
+  NodeParams(Node &node, NetworkView &networkView);
 
-  NodeParams(NetworkView &networkView);
-
-  void rebuildParamUI(QWidget *parent);
-
-  static NodeParams *make(render::Node *parent,
-	  NetworkView &networkView);
+  void rebuild();
 
 private:
+  Node &node_;
   NetworkView &networkView_;
-  QWidget *panel_ = nullptr;
   quint64 key_;
 };
 

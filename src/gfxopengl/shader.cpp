@@ -84,7 +84,7 @@ gl::GLuint createShader(gl::GLenum stage, util::StringRef source,
                         std::string &log) {
 
   gl::GLuint obj = gl::CreateShader(stage);
-  std::string src{source.ptr, source.len};
+  std::string src = source.to_string();
   const char *shaderSources[1] = {src.c_str()};
   gl::ShaderSource(obj, 1, shaderSources, NULL);
   gl::CompileShader(obj);
