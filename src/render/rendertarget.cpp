@@ -10,7 +10,7 @@ RenderTarget *RenderTarget::make(ScreenSpaceNode *parent, std::string name,
 	  parent->addChild(std::make_unique<RenderTarget>(desc, std::move(name))));
 }*/
 
-gfx::ImageHandle RenderTarget::getImage(const ScreenSpaceContext &ctx) {
+gfx::ImageHandle RenderTargetOutput::getImage(const ScreenSpaceContext &ctx) {
   return 0;
 }
 

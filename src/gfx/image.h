@@ -27,6 +27,19 @@ struct ImageDesc {
   int mipMapCount = 1;
   int sampleCount = 1;
   ImageUsageFlags usage = ImageUsageFlags::All;
+
+  /// Comparison operator
+  constexpr bool operator==(const ImageDesc &rhs) const {
+    return dimensions == rhs.dimensions && format == rhs.format &&
+           width == rhs.width && height == rhs.height && depth == rhs.depth &&
+           arrayLayerCount == rhs.arrayLayerCount &&
+           mipMapCount == rhs.mipMapCount && sampleCount == rhs.sampleCount &&
+           usage == rhs.usage;
+  }
+
+  constexpr bool operator!=(const ImageDesc &rhs) const {
+	  return !(*this == rhs);
+  }
 };
 
 } // namespace gfx

@@ -7,12 +7,12 @@ namespace nodes {
 class NodeParams : public QWidget {
   Q_OBJECT
 public:
-  NodeParams(Node &node, NetworkView &networkView);
+  NodeParams(render::Node &node, NetworkView &networkView);
 
   void rebuild();
 
 private:
-  Node &node_;
+	render::Node &node_;
   NetworkView &networkView_;
   quint64 key_;
 };

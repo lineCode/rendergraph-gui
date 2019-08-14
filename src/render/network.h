@@ -35,6 +35,21 @@ public:
 
   Node *findChildByName(util::StringRef name);
 
+  void addConnection(util::StringRef from, util::StringRef fromOutput, util::StringRef to, util::StringRef toInput) {
+	  auto fromNode = findChildByName(from);
+	  if (!fromNode) // emit an error somehow
+		  return;
+	  auto toNode = findChildByName(to);
+	  if (!toNode)
+		  return;
+	  auto output = fromNode->output(fromOutput);
+	  if (!output) return;
+	  auto input = toNode->input(toInput);
+	  if (!input) return;
+
+	  // found everything
+  }
+
   static Ptr make(Network* parent, std::string name) {
 	  return std::make_unique<Network>(std::move(name),parent);
   }

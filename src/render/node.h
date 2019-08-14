@@ -22,7 +22,9 @@ enum class EventType {
   ReferenceRemoved,
   NodeDeleted,
   InputAdded,
-  InputRemoved
+  InputRemoved,
+  OutputAdded,
+  OutputRemoved
 };
 
 struct EventData {
@@ -42,11 +44,17 @@ struct EventData {
       Node *to;
     } referenceRemoved;
     struct {
-      int index;
+      Input *input;
     } inputAdded;
     struct {
-      int index;
+      Input *input;
     } inputRemoved;
+    struct {
+      Output *output;
+    } outputAdded;
+    struct {
+      Output *output;
+    } outputRemoved;
   } u;
 };
 
@@ -55,6 +63,11 @@ using EventHandler = void(const EventData &);
 using ParamMap = std::map<std::string, Param *>;
 using InputMap = std::map<std::string, Input *>;
 using OutputMap = std::map<std::string, Output *>;
+
+struct Dependent {
+  Node *node;
+  int refCount;
+};
 
 /// Base class for all nodes.
 ///
@@ -91,7 +104,13 @@ public:
   Param *param(int index);
 
   // sever all connections
-  void disconnect() const;
+  void disconnect();
+
+  // Inputs and outputs
+  Input *input(int index);
+  Input *input(util::StringRef name);
+  Output *output(int index);
+  Output *output(util::StringRef name);
 
 protected:
   // child added
@@ -101,18 +120,25 @@ protected:
   void onReferenceAdded(Node *to);
   void onReferenceRemoved(Node *to);
   void onNodeDeleted();
-  void onInputAdded(int index);
-  void onInputRemoved(int index);
-  void onOutputAdded(int index);
-  void onOutputRemoved(int index);
+  void onInputAdded(Input *input);
+  void onInputRemoved(Input *input);
+  void onOutputAdded(Output *output);
+  void onOutputRemoved(Output *output);
+  // called by Output
+  void onDependentAdded(Output* output, Node* node);
+  void onDependentRemoved(Output* output, Node* node);
 
   void notify(const EventData &e);
+
+  void referencedOutputDeleted(Output *ref);
 
 private:
   void addParameter(Param *p);
   void removeParameter(Param *p);
   void addReference(NodeRef *ref);
   void removeReference(NodeRef *ref);
+  //void addDependent(Node *node);
+  //void removeDependent(Node *node);
   void addObserver(Observer *obs);
   void removeObserver(Observer *obs);
   void insertInput(Input *input, int index = -1);
@@ -130,11 +156,9 @@ private:
   std::vector<Input *> inputs_;
   std::vector<Output *> outputs_;
 
-  // nodes referenced by this node (which nodes this node depends on?)
+  // node outputs referenced by this node (which nodes this node depends on?)
   std::vector<NodeRef *> references_;
-  // nodes that depend on this node (they are notified when
-  // this node is being changed or deleted)
-  std::vector<Node *> dependents_;
+  //std::vector<Node*> dependencies_;
 
   // observers
   int notifying_ = 0;
@@ -143,28 +167,25 @@ private:
   std::vector<Observer *> observersToRemove_;
 };
 
-/// A reference to a node (by name).
+/// A weak reference to an output of a node (by name).
 class NodeRef {
+  friend class Node;
+
 public:
   using Ptr = std::unique_ptr<NodeRef>;
+  NodeRef(Node *owner, std::string path = "", std::string output = "");
+  ~NodeRef();
 
-  NodeRef(Node *owner, std::string path = "")
-      : owner_{owner}, path_{std::move(path)} {
-    owner_->addReference(this);
-  }
-
-  ~NodeRef() { owner_->removeReference(this); }
-
-  ///
-  Node *resolve() {
-    // TODO
-    return nullptr;
-  }
+  void set(std::string path, std::string output);
 
 private:
-  // node that owns the reference
+  Output *resolve();
+  void unlink();
+
   Node *owner_;
+  Output *target_;
   std::string path_;
+  std::string output_;
 };
 
 /// Parameters are displayed in the parameter panel.
@@ -180,9 +201,7 @@ public:
 
   ~Param() { owner_->removeParameter(this); }
 
-  util::StringRef name() const {
-	  return name_;
-  }
+  util::StringRef name() const { return name_; }
   double value() const { return val_; }
   void setValue(double newValue) { val_ = newValue; }
   util::StringRef description() const { return description_; }

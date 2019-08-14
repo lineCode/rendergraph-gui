@@ -12,6 +12,10 @@
 #include <QStatusBar>
 #include <QVBoxLayout>
 
+using render::Node;
+using render::Output;
+using render::Input;
+
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
@@ -146,8 +150,9 @@ void MainWindow::deleteSelectedNodes() {
       (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
-void MainWindow::addConnection(Node *fromConnector,
-                               Node *toConnector) {
+void MainWindow::addConnection(Output *from,
+                               Input *to) {
+	
   // networkModel.addConnection(fromConnector, toConnector);
 }
 
@@ -171,9 +176,12 @@ void MainWindow::addNode() {
   nodeA->addInput("input0");
   nodeA->addInput("input1");
   nodeA->addInput("input2");
+  nodeA->addOutput("output0", {});
 
   nodeB->addInput("input0");
   nodeB->addInput("input1");
+  nodeB->addOutput("output0", {});
+  nodeB->addOutput("output1", {});
 
   //nodeA_UI->rebuildParamUI(paramPanel_);
   //networkView->nodeAdded(nodeA);

@@ -3,6 +3,8 @@
 #include <QSpinBox>
 #include <QWidget>
 
+using render::Node;
+
 namespace ui {
 namespace nodes {
 

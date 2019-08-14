@@ -14,6 +14,13 @@
 #include <QWheelEvent>
 #include <algorithm>
 
+#include "render/output.h"
+#include "render/input.h"
+
+using render::Input;
+using render::Node;
+using render::Output;
+
 //=====================================================================================
 // Node item metrics
 
@@ -21,7 +28,6 @@ const double NODE_WIDTH = 150.0;
 const double NODE_HEIGHT = 40.0;
 const double NODE_LABEL_WIDTH = 200.0;
 const double CONNECTOR_RADIUS = 7.0;
-
 
 //=====================================================================================
 // NodeGraphicsObjectPrivate
@@ -34,10 +40,18 @@ NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
       render::Observer::make(node, [this](const render::EventData &e) {
         switch (e.type) {
         case render::EventType::InputAdded:
-			this->inputConnectorAdded(e.u.inputAdded.index);
+          this->inputConnectorAdded(e.u.inputAdded.index);
           break;
         case render::EventType::InputRemoved:
-			this->inputConnectorRemoved(e.u.inputRemoved.index);
+          this->inputConnectorRemoved(e.u.inputRemoved.index);
+          break;
+        case render::EventType::OutputAdded:
+          this->outputConnectorAdded(e.u.outputAdded.index);
+          break;
+        case render::EventType::OutputRemoved:
+          this->outputConnectorRemoved(e.u.outputRemoved.index);
+          break;
+        default:
           break;
         }
       });
@@ -138,17 +152,16 @@ void NodeGraphicsObjectPrivate::contextMenuEvent(
 }
 
 void NodeGraphicsObjectPrivate::inputConnectorAdded(int index) {
-  auto item = new NodeConnectorGraphicsObjectPrivate{
-      index, AbstractNetworkModel::ConnectionType::Input,
-      inputConnectorsWidget_};
+  auto item = new InputConnectorGraphicsObjectPrivate{node_->input(index),
+                                                      inputConnectorsWidget_};
+
   inputConnectors_.insert(index, item);
   updateConnectorLayout(inputConnectors_);
 }
 
 void NodeGraphicsObjectPrivate::outputConnectorAdded(int index) {
-  auto item = new NodeConnectorGraphicsObjectPrivate{
-      index, AbstractNetworkModel::ConnectionType::Output,
-      outputConnectorsWidget_};
+  auto item = new OutputConnectorGraphicsObjectPrivate{node_->output(index),
+                                                       outputConnectorsWidget_};
   outputConnectors_.insert(index, item);
   updateConnectorLayout(outputConnectors_);
 }
@@ -164,13 +177,12 @@ void NodeGraphicsObjectPrivate::outputConnectorRemoved(int index) {
 }
 
 void NodeGraphicsObjectPrivate::updateConnectorLayout(
-    QList<NodeConnectorGraphicsObjectPrivate *> &connectors) {
+    QList<ConnectorGraphicsObjectPrivate *> &connectors) {
   auto n = connectors.size();
   for (int i = 0; i < n; ++i) {
     connectors[i]->setPos(QPointF{(i + 1) * size_.width() / (n + 1), 0.0});
   }
 }
-
 
 //=====================================================================================
 // NodeConnectionGraphicsItemPrivate
@@ -185,24 +197,22 @@ void NodeConnectionGraphicsItemPrivate::updatePositions() {
   setPath(p);
 }
 
-
 //=====================================================================================
 // NodeConnectorGraphicsObjectPrivate
-NodeConnectorGraphicsObjectPrivate::NodeConnectorGraphicsObjectPrivate(
-    int connectorIndex, AbstractNetworkModel::ConnectionType type,
+ConnectorGraphicsObjectPrivate::ConnectorGraphicsObjectPrivate(
     QGraphicsItem *parent)
-    : QGraphicsObject{parent}, type_{type}, connectorIndex_{connectorIndex} {
+    : QGraphicsObject{parent} {
   setAcceptHoverEvents(true);
 }
 
-QRectF NodeConnectorGraphicsObjectPrivate::boundingRect() const {
+QRectF ConnectorGraphicsObjectPrivate::boundingRect() const {
   return QRectF{
       QPointF{-CONNECTOR_RADIUS, -CONNECTOR_RADIUS},
       QPointF{CONNECTOR_RADIUS, CONNECTOR_RADIUS},
   };
 }
 
-void NodeConnectorGraphicsObjectPrivate::paint(
+void ConnectorGraphicsObjectPrivate::paint(
     QPainter *painter, const QStyleOptionGraphicsItem *option,
     QWidget *widget) {
   // grandparent is node
@@ -222,18 +232,17 @@ void NodeConnectorGraphicsObjectPrivate::paint(
   painter->drawEllipse(boundingRect());
 }
 
-void NodeConnectorGraphicsObjectPrivate::hoverEnterEvent(
+void ConnectorGraphicsObjectPrivate::hoverEnterEvent(
     QGraphicsSceneHoverEvent *e) {
   hover_ = true;
   update();
 }
 
-void NodeConnectorGraphicsObjectPrivate::hoverLeaveEvent(
+void ConnectorGraphicsObjectPrivate::hoverLeaveEvent(
     QGraphicsSceneHoverEvent *e) {
   hover_ = false;
   update();
 }
-
 
 //=====================================================================================
 // NetworkScene
@@ -309,26 +318,27 @@ void NetworkScene::outputConnectorRemoved(Node *node, int index) {
   nodes_[node]->outputConnectorRemoved(index);
 }
 
-void NetworkScene::connectionAdded(Node *from, Node *to) {
-  auto srcNode = nodes_[from];
-  auto srcConnector = srcNode->outputConnectors_[0]; // TODO
-  auto dstNode = nodes_[to];
-  auto dstConnector = dstNode->inputConnectors_[0]; // TODO
+void NetworkScene::connectionAdded(Output *from, Input *to) {
+  auto srcNode = nodes_[from->owner()];
+  auto dstNode = nodes_[to->owner()];
+
+  auto srcConn = srcNode->findOutputConnector(from);
+  auto dstConn = dstNode->findInputConnector(to);
 
   auto connection =
-      new NodeConnectionGraphicsItemPrivate{srcConnector, dstConnector};
+      new NodeConnectionGraphicsItemPrivate{ srcConn, dstConn };
   connection->setPen(QPen{Qt::black, 2.0});
   addItem(connection);
   connections_.push_back(connection);
   connection->updatePositions();
 }
 
-void NetworkScene::connectionRemoved(Node *from, Node *to) {
+void NetworkScene::connectionRemoved(Output *from, Input *to) {
   connections_.erase(
       std::remove_if(connections_.begin(), connections_.end(),
                      [=](NodeConnectionGraphicsItemPrivate *item) {
-                       auto b = item->srcConn_->connectorIndex_ == 0 && // TODO
-                                item->dstConn_->connectorIndex_ == 0;
+                       auto b = item->srcConn_->output_ == from &&
+                                item->dstConn_->input_ == to;
                        // qDebug() << "from=" << fromConnector << " to=" <<
                        // toConnector << " src=" <<
                        // item->srcConn_->connectorIndex_ << " dest=" <<
@@ -418,31 +428,47 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
   }
 
   if (auto item = scene_.itemAt(mapToScene(e->pos()), QTransform{})) {
-    if (auto c = qobject_cast<NodeConnectorGraphicsObjectPrivate *>(
+    if (auto c = qobject_cast<ConnectorGraphicsObjectPrivate *>(
             item->toGraphicsObject())) {
       if (!makingConnection_) {
         makingConnection_ = true;
-        connectionStart_ = c;
+        if (auto start =
+                qobject_cast<OutputConnectorGraphicsObjectPrivate *>(c)) {
+          connectionStart_ = start;
+        } else {
+          connectionEnd_ =
+              qobject_cast<InputConnectorGraphicsObjectPrivate *>(c);
+        }
         connectionLine_ =
             new QGraphicsLineItem{QLineF{c->scenePos(), c->scenePos()}};
         scene_.addItem(connectionLine_);
         resetConnection = false;
-      } else {
-        if (c->type_ != connectionStart_->type_) {
+      } else
+
+      {
+        if (auto start =
+                qobject_cast<OutputConnectorGraphicsObjectPrivate *>(c)) {
+          if (connectionStart_ != nullptr) {
+            // resetConnection = true;
+          } else {
+            connectionStart_ =
+                qobject_cast<OutputConnectorGraphicsObjectPrivate *>(c);
+          }
+        } else {
+          if (connectionEnd_ != nullptr) {
+            // resetConnection = true;
+          } else {
+            connectionEnd_ =
+                qobject_cast<InputConnectorGraphicsObjectPrivate *>(c);
+          }
+        }
+
+        if (connectionStart_ && connectionEnd_) {
           // endpoint types must be different
           qDebug() << "making connection (" << connectionStart_ << " <-> "
-                   << c->connectorIndex_ << ")";
-          if (connectionStart_->type_ ==
-              AbstractNetworkModel::ConnectionType::Output) {
-            // Q_EMIT connectionRequest(connectionStart_->connconnectorIndex_,
-            // // TODO
-            //                         c->connectorIndex_);
-          } else {
-            // Q_EMIT connectionRequest(c->connectorIndex_,
-            //                         connectionStart_->connectorIndex_);
-            //                         //
-            //                         TODO
-          }
+                   << connectionEnd_ << ")";
+          Q_EMIT connectionRequest(connectionStart_->output_,
+                                   connectionEnd_->input_);
         }
       }
     }

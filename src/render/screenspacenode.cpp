@@ -49,19 +49,6 @@ void ScreenSpaceNode::setFragCode(std::string code) {
   compilationSuccess_ = false;
 }
 
-RenderTarget *ScreenSpaceNode::addRenderTarget(std::string name,
-                                               const gfx::ImageDesc &desc) {
-  // Create a new render target node and add it as a child of this node
-  // auto rt = RenderTarget::make(this, name, desc);
-  // return rt;
-  return nullptr;
-}
-
-void ScreenSpaceNode::setRenderTargetDesc(util::StringRef name,
-                                          const gfx::ImageDesc &desc) {}
-
-void ScreenSpaceNode::deleteRenderTarget(util::StringRef name) {}
-
 bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
 
   if (shaderDirty_ == false) {
@@ -148,7 +135,7 @@ void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
   if (!framebuffer_) {
     gfx::FramebufferDesc fbDesc;
     gfx::RenderTargetView rtv;
-    rtv.image = renderTargets_[0]->getImage(ctx);
+    rtv.image = outputs_[0]->getImage(ctx);
     gfx::RenderTargetView rtvs[1] = {rtv};
     fbDesc.colorTargets = util::makeConstArrayRef(rtvs);
     framebuffer_ = gfx::Framebuffer{gfx, fbDesc};
@@ -171,7 +158,8 @@ void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
 template <typename Container, typename T>
 void eraseRemoveUniquePtr(Container &container, const T *val) {
   static_assert(
-      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value, "Container value type must be unique_ptr<T>");
+      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value,
+      "Container value type must be unique_ptr<T>");
   auto it = std::remove_if(container.begin(), container.end(),
                            [val](const std::unique_ptr<T> &ptr) {
                              if (ptr.get() == val) {
@@ -185,10 +173,25 @@ void eraseRemoveUniquePtr(Container &container, const T *val) {
 template <typename Container, typename T>
 T *pushUniquePtr(Container &container, std::unique_ptr<T> ptr) {
   static_assert(
-      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value, "Container value type must be unique_ptr<T>");
+      std::is_same<typename Container::value_type, std::unique_ptr<T>>::value,
+      "Container value type must be unique_ptr<T>");
   auto p = ptr.get();
   container.push_back(std::move(ptr));
   return p;
+}
+
+RenderTargetOutput *ScreenSpaceNode::addOutput(std::string name,
+                                               const gfx::ImageDesc &desc) {
+  return pushUniquePtr(outputs_, RenderTargetOutput::make(this, name));
+}
+
+/*void ScreenSpaceNode::setOutputDesc(util::StringRef name, const gfx::ImageDesc
+&desc) {
+
+}*/
+
+void ScreenSpaceNode::deleteOutput(RenderTargetOutput *output) {
+  eraseRemoveUniquePtr(outputs_, output);
 }
 
 Input *ScreenSpaceNode::addInput(std::string name, std::string initPath) {
@@ -197,14 +200,6 @@ Input *ScreenSpaceNode::addInput(std::string name, std::string initPath) {
 
 void ScreenSpaceNode::deleteInput(Input *input) {
   eraseRemoveUniquePtr(inputs_, input);
-}
-
-Output *ScreenSpaceNode::addOutput(std::string name) {
-  return pushUniquePtr(outputs_, Output::make(this, name));
-}
-
-void ScreenSpaceNode::deleteOutput(Output *output) {
-  eraseRemoveUniquePtr(outputs_, output);
 }
 
 Param *ScreenSpaceNode::addParam(std::string name, std::string description,

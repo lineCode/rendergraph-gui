@@ -24,9 +24,16 @@ public:
     return std::make_unique<Input>(owner, std::move(name));
   }
 
+  Node *owner() const { return owner_; }
+
+  void set(std::string node, std::string output) {
+	  nodeRef_.set(node, output);
+  }
+
 private:
   Node *owner_;
   std::string name_;
   NodeRef nodeRef_;
 };
+
 } // namespace render
