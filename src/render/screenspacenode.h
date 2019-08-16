@@ -45,12 +45,12 @@ struct RenderTargetStorage {
   gfx::Image image;
 };
 
-class RenderTargetOutput : public Output {
+class RenderTarget {
 public:
-  using Ptr = std::unique_ptr<RenderTargetOutput>;
+  using Ptr = std::unique_ptr<RenderTarget>;
 
-  RenderTargetOutput(Node *owner, std::string name)
-      : Output{owner, std::move(name)} {
+  RenderTarget(Node *owner, std::string name, int outputId)
+      : outputId_{outputId} {
     // just set a dummy desc for now
     // the node should call setDesc before
     desc_.width = 256;
@@ -63,8 +63,8 @@ public:
     desc_.arrayLayerCount = 1;
   }
 
-  RenderTargetOutput(Node *owner, std::string name, const gfx::ImageDesc &desc)
-      : Output{owner, std::move(name)}, desc_{desc} {}
+  RenderTarget(Node *owner, std::string name, const gfx::ImageDesc &desc)
+      : desc_{desc} {}
 
   const gfx::ImageDesc &desc() const { return desc_; }
   void setDesc(const gfx::ImageDesc &desc) {
@@ -73,14 +73,18 @@ public:
       storage_.reset();
     }
   }
+  int outputId() const { return outputId_; }
 
-  static Ptr make(Node *owner, std::string name) {
-    return std::make_unique<RenderTargetOutput>(owner, std::move(name));
+  static Ptr make(Node *owner, std::string name, int outputId) {
+    return std::make_unique<RenderTarget>(owner, std::move(name), outputId);
   }
 
   gfx::ImageHandle getImage(const ScreenSpaceContext &ctx); // TODO
 
 private:
+  // corresponding output
+  int outputId_;
+  // description of the render target (format, etc.)
   gfx::ImageDesc desc_;
   std::shared_ptr<RenderTargetStorage> storage_;
 };
@@ -99,18 +103,13 @@ public:
   /// Sets the body of the fragment shader.
   void setFragCode(std::string code);
 
-  //------ Inputs ------
-  Input *addInput(std::string name, std::string initPath = "");
-  void deleteInput(Input *input);
-
-  //------ Parameters ------
-  Param *addParam(std::string name, std::string description, double initValue);
-  void deleteParam(Param *param);
-
   //------ Render target management ------
-  RenderTargetOutput *addOutput(std::string name, const gfx::ImageDesc &desc);
-  // void setOutputDesc(util::StringRef name, const gfx::ImageDesc &desc);
-  void deleteOutput(RenderTargetOutput *output);
+
+  /*
+  RenderTarget *addRenderTarget(std::string name, const gfx::ImageDesc &desc);
+  void setOutputDesc(util::StringRef name, const gfx::ImageDesc &desc);
+  void deleteRenderTarget(RenderTarget *output);
+  */
 
   bool compilationSucceeded() const { return compilationSuccess_; }
   void execute(gfx::GraphicsBackend *gfx, const ScreenSpaceContext &ctx);
@@ -120,9 +119,8 @@ public:
 private:
   bool compile(gfx::GraphicsBackend *gfx);
 
-  std::vector<Input::Ptr> inputs_;
-  std::vector<RenderTargetOutput::Ptr> outputs_;
-  std::vector<Param::Ptr> params_;
+  // one render target is created for each output
+  std::vector<RenderTarget::Ptr> renderTargets_;
 
   uint64_t lastFramebufferUpdate_ = 0;
   std::string fragCode_;

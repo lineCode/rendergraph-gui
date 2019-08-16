@@ -14,8 +14,8 @@
 #include <QWheelEvent>
 #include <algorithm>
 
-#include "render/output.h"
 #include "render/input.h"
+#include "render/output.h"
 
 using render::Input;
 using render::Node;
@@ -40,16 +40,16 @@ NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
       render::Observer::make(node, [this](const render::EventData &e) {
         switch (e.type) {
         case render::EventType::InputAdded:
-          this->inputConnectorAdded(e.u.inputAdded.index);
+          this->inputConnectorAdded(e.u.inputAdded.input);
           break;
         case render::EventType::InputRemoved:
-          this->inputConnectorRemoved(e.u.inputRemoved.index);
+          this->inputConnectorRemoved(e.u.inputRemoved.input);
           break;
         case render::EventType::OutputAdded:
-          this->outputConnectorAdded(e.u.outputAdded.index);
+          this->outputConnectorAdded(e.u.outputAdded.output);
           break;
         case render::EventType::OutputRemoved:
-          this->outputConnectorRemoved(e.u.outputRemoved.index);
+          this->outputConnectorRemoved(e.u.outputRemoved.output);
           break;
         default:
           break;
@@ -151,29 +151,55 @@ void NodeGraphicsObjectPrivate::contextMenuEvent(
   QGraphicsObject::contextMenuEvent(event);
 }
 
-void NodeGraphicsObjectPrivate::inputConnectorAdded(int index) {
-  auto item = new InputConnectorGraphicsObjectPrivate{node_->input(index),
+InputConnectorGraphicsObjectPrivate *
+NodeGraphicsObjectPrivate::findInputConnector(Input *input) {
+  for (auto c : inputConnectors_) {
+    auto ci = static_cast<InputConnectorGraphicsObjectPrivate *>(c);
+    if (ci->input_ == input) {
+      return ci;
+    }
+  }
+  return nullptr;
+}
+
+OutputConnectorGraphicsObjectPrivate *
+NodeGraphicsObjectPrivate::findOutputConnector(Output *output) {
+  for (auto c : outputConnectors_) {
+    auto ci = static_cast<OutputConnectorGraphicsObjectPrivate *>(c);
+    if (ci->output_ == output) {
+      return ci;
+    }
+  }
+  return nullptr;
+}
+
+void NodeGraphicsObjectPrivate::inputConnectorAdded(Input *input) {
+  auto item = new InputConnectorGraphicsObjectPrivate{node_, input,
                                                       inputConnectorsWidget_};
 
-  inputConnectors_.insert(index, item);
+  inputConnectors_.push_back(item);
   updateConnectorLayout(inputConnectors_);
 }
 
-void NodeGraphicsObjectPrivate::outputConnectorAdded(int index) {
-  auto item = new OutputConnectorGraphicsObjectPrivate{node_->output(index),
+void NodeGraphicsObjectPrivate::outputConnectorAdded(Output *output) {
+  auto item = new OutputConnectorGraphicsObjectPrivate{node_, output,
                                                        outputConnectorsWidget_};
-  outputConnectors_.insert(index, item);
+  outputConnectors_.push_back(item);
   updateConnectorLayout(outputConnectors_);
 }
 
-void NodeGraphicsObjectPrivate::inputConnectorRemoved(int index) {
-  delete inputConnectors_[index];
-  inputConnectors_.removeAt(index);
+void NodeGraphicsObjectPrivate::inputConnectorRemoved(Input *input) {
+  auto connector = findInputConnector(input);
+  assert(connector);
+  delete connector;
+  inputConnectors_.removeOne(connector);
 }
 
-void NodeGraphicsObjectPrivate::outputConnectorRemoved(int index) {
-  delete outputConnectors_[index];
-  outputConnectors_.removeAt(index);
+void NodeGraphicsObjectPrivate::outputConnectorRemoved(Output *output) {
+  auto connector = findOutputConnector(output);
+  assert(connector);
+  delete connector;
+  outputConnectors_.removeOne(connector);
 }
 
 void NodeGraphicsObjectPrivate::updateConnectorLayout(
@@ -200,8 +226,8 @@ void NodeConnectionGraphicsItemPrivate::updatePositions() {
 //=====================================================================================
 // NodeConnectorGraphicsObjectPrivate
 ConnectorGraphicsObjectPrivate::ConnectorGraphicsObjectPrivate(
-    QGraphicsItem *parent)
-    : QGraphicsObject{parent} {
+    Node *node, QGraphicsItem *parent)
+    : QGraphicsObject{parent}, node_{node} {
   setAcceptHoverEvents(true);
 }
 
@@ -303,42 +329,56 @@ void NetworkScene::nodeDeleteRequested(const Node* node) {
   model_->removeNode(i);
 }*/
 
-void NetworkScene::inputConnectorAdded(Node *node, int index) {
-  nodes_[node]->inputConnectorAdded(index);
+void inputConnectorAdded(render::Node *node, render::Input *input);
+void outputConnectorAdded(render::Node *node, render::Input *input);
+void inputConnectorRemoved(render::Node *node, render::Output *output);
+void outputConnectorRemoved(render::Node *node, render::Output *output);
+void connectionAdded(render::Node *from, render::Output *output,
+                     render::Node *to, render::Input *input);
+void connectionRemoved(render::Node *from, render::Output *output,
+                       render::Node *to, render::Input *input);
+
+void NetworkScene::inputConnectorAdded(render::Node *node,
+                                       render::Input *input) {
+  nodes_[node]->inputConnectorAdded(input);
 }
 
-void NetworkScene::outputConnectorAdded(Node *node, int index) {
-  nodes_[node]->outputConnectorAdded(index);
+void NetworkScene::outputConnectorAdded(render::Node *node,
+                                        render::Output *output) {
+  nodes_[node]->outputConnectorAdded(output);
 }
 
-void NetworkScene::inputConnectorRemoved(Node *node, int index) {
-  nodes_[node]->outputConnectorAdded(index);
+void NetworkScene::inputConnectorRemoved(render::Node *node,
+                                         render::Input *input) {
+  nodes_[node]->inputConnectorRemoved(input);
 }
-void NetworkScene::outputConnectorRemoved(Node *node, int index) {
-  nodes_[node]->outputConnectorRemoved(index);
+void NetworkScene::outputConnectorRemoved(render::Node *node,
+                                          render::Output *output) {
+  nodes_[node]->outputConnectorRemoved(output);
 }
 
-void NetworkScene::connectionAdded(Output *from, Input *to) {
-  auto srcNode = nodes_[from->owner()];
-  auto dstNode = nodes_[to->owner()];
+void NetworkScene::connectionAdded(render::Node *from, render::Output *output,
+                                   render::Node *to, render::Input *input) {
+  auto srcNode = nodes_[from];
+  auto dstNode = nodes_[to];
 
-  auto srcConn = srcNode->findOutputConnector(from);
-  auto dstConn = dstNode->findInputConnector(to);
+  auto srcConn = srcNode->findOutputConnector(output);
+  auto dstConn = dstNode->findInputConnector(input);
 
-  auto connection =
-      new NodeConnectionGraphicsItemPrivate{ srcConn, dstConn };
+  auto connection = new NodeConnectionGraphicsItemPrivate{srcConn, dstConn};
   connection->setPen(QPen{Qt::black, 2.0});
   addItem(connection);
   connections_.push_back(connection);
   connection->updatePositions();
 }
 
-void NetworkScene::connectionRemoved(Output *from, Input *to) {
+void NetworkScene::connectionRemoved(render::Node *from, render::Output *output,
+                                     render::Node *to, render::Input *input) {
   connections_.erase(
       std::remove_if(connections_.begin(), connections_.end(),
                      [=](NodeConnectionGraphicsItemPrivate *item) {
-                       auto b = item->srcConn_->output_ == from &&
-                                item->dstConn_->input_ == to;
+                       auto b = item->srcConn_->output_ == output &&
+                                item->dstConn_->input_ == input;
                        // qDebug() << "from=" << fromConnector << " to=" <<
                        // toConnector << " src=" <<
                        // item->srcConn_->connectorIndex_ << " dest=" <<
@@ -467,8 +507,9 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
           // endpoint types must be different
           qDebug() << "making connection (" << connectionStart_ << " <-> "
                    << connectionEnd_ << ")";
-          Q_EMIT connectionRequest(connectionStart_->output_,
-                                   connectionEnd_->input_);
+          Q_EMIT connectionRequest(
+              connectionStart_->node_, connectionStart_->output_,
+              connectionEnd_->node_, connectionEnd_->input_);
         }
       }
     }
@@ -478,6 +519,8 @@ void NetworkView::mousePressEvent(QMouseEvent *e) {
     makingConnection_ = false;
     delete connectionLine_;
     connectionLine_ = nullptr;
+    connectionStart_ = nullptr;
+    connectionEnd_ = nullptr;
   }
 
   QGraphicsView::mousePressEvent(e);

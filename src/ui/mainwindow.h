@@ -29,8 +29,7 @@ private Q_SLOTS:
   void addNode();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
-  void addConnection(render::Output *from,
-	  render::Input *to);
+  void addConnection(render::Node* from, render::Output* output, render::Node *to, render::Input* input);
 
 private:
   QAction* connectToServerAct;

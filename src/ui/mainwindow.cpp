@@ -32,8 +32,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
           SLOT(showNetworkViewContextMenu(const QPoint &)));
   connect(
       networkView,
-      SIGNAL(connectionRequest(QPersistentModelIndex, QPersistentModelIndex)),
-      this, SLOT(addConnection(QPersistentModelIndex, QPersistentModelIndex)));
+	  &NetworkView::connectionRequest,
+	  this, &MainWindow::addConnection);
 
   auto buttonScaleUp = new QPushButton("+");
   connect(buttonScaleUp, SIGNAL(released()), this, SLOT(scaleUp()));
@@ -150,9 +150,9 @@ void MainWindow::deleteSelectedNodes() {
       (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
-void MainWindow::addConnection(Output *from,
-                               Input *to) {
+void MainWindow::addConnection(render::Node* from, render::Output* output, render::Node *to, render::Input* input) {
 	
+	//root_->addConnection()
   // networkModel.addConnection(fromConnector, toConnector);
 }
 
@@ -170,18 +170,18 @@ void MainWindow::addNode() {
   auto nodeB = render::ScreenSpaceNode::make(root_.get(), "nodeB");
   //auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
    
-  nodeA->addParam("testParam", "Test parameter", 0.0);
-  nodeA->addParam("testParam2", "Test parameter2", 0.0);
+  nodeA->createParameter("testParam", "Test parameter", 0.0);
+  nodeA->createParameter("testParam2", "Test parameter2", 0.0);
 
-  nodeA->addInput("input0");
-  nodeA->addInput("input1");
-  nodeA->addInput("input2");
-  nodeA->addOutput("output0", {});
+  nodeA->createInput("input0");
+  nodeA->createInput("input1");
+  nodeA->createInput("input2");
+  nodeA->createOutput("output0");
 
-  nodeB->addInput("input0");
-  nodeB->addInput("input1");
-  nodeB->addOutput("output0", {});
-  nodeB->addOutput("output1", {});
+  nodeB->createInput("input0");
+  nodeB->createInput("input1");
+  nodeB->createOutput("output0");
+  nodeB->createOutput("output1");
 
   //nodeA_UI->rebuildParamUI(paramPanel_);
   //networkView->nodeAdded(nodeA);

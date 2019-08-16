@@ -11,11 +11,11 @@ class Network : public Node {
 public:
   using Ptr = std::unique_ptr<Network>;
 
-  Network(Network* parent) : Node{ parent } {}
-  Network(std::string name, Network* parent) : Node{name, parent} {}
+  Network(Network *parent) : Node{parent} {}
+  Network(std::string name, Network *parent) : Node{name, parent} {}
   virtual ~Network() {}
 
-  Node* addChild(Node::Ptr ptr);
+  Node *addChild(Node::Ptr ptr);
   void deleteChild(Node *node);
   void deleteChildren(util::ArrayRef<Node *const> nodes);
 
@@ -35,23 +35,30 @@ public:
 
   Node *findChildByName(util::StringRef name);
 
-  void addConnection(util::StringRef from, util::StringRef fromOutput, util::StringRef to, util::StringRef toInput) {
-	  auto fromNode = findChildByName(from);
-	  if (!fromNode) // emit an error somehow
-		  return;
-	  auto toNode = findChildByName(to);
-	  if (!toNode)
-		  return;
-	  auto output = fromNode->output(fromOutput);
-	  if (!output) return;
-	  auto input = toNode->input(toInput);
-	  if (!input) return;
+  void addConnection(util::StringRef from, util::StringRef fromOutput,
+                     util::StringRef to, util::StringRef toInput) {
+    auto fromNode = findChildByName(from);
+    if (!fromNode) // emit an error somehow
+      return;
+    auto toNode = findChildByName(to);
+    if (!toNode)
+      return;
+    auto output = fromNode->output(fromOutput);
+    if (!output)
+      return;
+    auto input = toNode->input(toInput);
+    if (!input)
+      return;
 
-	  // found everything
+    // found everything
+	// TODO
   }
 
-  static Ptr make(Network* parent, std::string name) {
-	  return std::make_unique<Network>(std::move(name),parent);
+  void addConnection(render::Node *from, int outputId, render::Node *to,
+                     int inputId) {}
+
+  static Ptr make(Network *parent, std::string name) {
+    return std::make_unique<Network>(std::move(name), parent);
   }
 
 private:

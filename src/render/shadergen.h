@@ -48,8 +48,8 @@ public:
   SVal *emitSample2D(SFunCtx *f, SVal *texture, const gfx::SamplerDesc &sampler,
                      SVal *x, SVal *y);
 
-  SVal *addInput(util::StringRef name, SType *ty, int location);
-  SVal *addOutput(util::StringRef name, SType *ty, int location);
+  SVal *createInput(util::StringRef name, SType *ty, int location);
+  SVal *createOutput(util::StringRef name, SType *ty, int location);
 
   SFunCtx *beginVertexShader();
   void endVertexShader(SFunCtx *ctx);
