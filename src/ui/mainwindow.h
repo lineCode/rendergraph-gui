@@ -5,8 +5,8 @@
 #include "ui/renderoutputview.h"
 #include "gfx/gfx.h"
 #include "gfxopengl/opengl.h"
-#include "render/network.h"
-#include "render/screenspacenode.h"
+#include "node/network.h"
+#include "img/screenspacenode.h"
 #include "client/client.h"
 #include <QListView>
 #include <QMainWindow>
@@ -29,7 +29,7 @@ private Q_SLOTS:
   void addNode();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
-  void addConnection(render::Node* from, render::Output* output, render::Node *to, render::Input* input);
+  void addConnection(node::Node* from, node::Output* output, node::Node *to, node::Input* input);
 
 private:
   QAction* connectToServerAct;
@@ -47,7 +47,7 @@ private:
   int nodeIdCounter = 0;
   bool connected_ = false;  
   std::unique_ptr<client::RendergraphClient> client_;
-  render::Network::Ptr root_;
+  node::Network::Ptr root_;
 };
 
 } // namespace ui

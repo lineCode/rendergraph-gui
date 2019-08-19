@@ -3,10 +3,9 @@
 #include <QSpinBox>
 #include <QWidget>
 
-using render::Node;
+using node::Node;
 
 namespace ui {
-namespace nodes {
 
 NodeParams::NodeParams(Node &node, NetworkView &networkView)
     : node_{node}, networkView_{networkView} {}
@@ -29,9 +28,8 @@ void NodeParams::rebuild() {
     connect(spinBox, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
             [param](double newValue) { param->setValue(newValue); });
 
-    layout->addRow(QString::fromUtf8(name.data(), name.size()), spinBox);
+    layout->addRow(QString::fromUtf8(name.data(), (int)name.size()), spinBox);
   }
 }
 
-} // namespace nodes
 } // namespace ui

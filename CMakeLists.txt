@@ -32,7 +32,8 @@ file(GLOB SOURCES
     src/ui/nodes/*.cpp 
     src/ui/QtAwesome/*.cpp
     src/util/*.cpp
-    src/render/*.cpp
+    src/node/*.cpp
+    src/img/*.cpp
     src/gfx/*.cpp
     src/gfxopengl/*.cpp
     src/client/*.cpp)
@@ -41,7 +42,8 @@ file(GLOB HEADERS
     src/ui/*.h 
     src/ui/nodes/*.h 
     src/util/*.h
-    src/render/*.h
+    src/node/*.h
+    src/img/*.h
     src/gfx/*.h
     src/gfxopengl/*.h
     src/ui/QtAwesome/*.h

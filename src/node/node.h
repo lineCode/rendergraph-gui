@@ -5,27 +5,62 @@
 #include <string>
 #include <vector>
 
-namespace render {
+namespace node {
 
 class Node;
 class Param;
-class NodeRef;
 class Observer;
 class Network;
-class Input;
 class Output;
+class Input;
+
+class Input {
+	friend class Node;
+
+	using Ptr = std::unique_ptr<Input>;
+
+	int id = 0;
+	std::string name = "";
+
+	bool showConnector = false;
+
+	std::string sourcePath = "";
+	std::string sourceOutputName = "";
+
+	Node *source = nullptr;
+	Output *output = nullptr;
+};
+
+class Output {
+	friend class Node;
+
+	using Ptr = std::unique_ptr<Output>;
+
+	int id = 0;
+	std::string name;
+	std::vector<Node *> dependents;
+};
+
 
 enum class EventType {
-  /// A
+  /// A child node has been added.
   ChildAdded,
+  /// A child node is about to be removed.
   ChildRemoved,
+  /// A reference to a node has been added.
   ReferenceAdded,
+  /// A reference to a node is about to be removed.
   ReferenceRemoved,
+  /// This node is being deleted.
   NodeDeleted,
   InputAdded,
   InputRemoved,
   OutputAdded,
-  OutputRemoved
+  OutputRemoved,
+  /// A connection has been added in this network
+  ConnectionAdded,
+  /// A connection is about to be removed in this network
+  ConnectionRemoved,
 };
 
 struct EventData {
@@ -56,6 +91,18 @@ struct EventData {
     struct {
       Output *output;
     } outputRemoved;
+	struct {
+		Node* source;
+		Output* output;
+		Node* dest;
+		Input* input;
+	} connectionAdded;
+	struct {
+		Node* source;
+		Output* output;
+		Node* dest;
+		Input* input;
+	} connectionRemoved;
   } u;
 };
 
@@ -65,62 +112,8 @@ using ParamMap = std::map<std::string, Param *>;
 using InputMap = std::map<std::string, Input *>;
 using OutputMap = std::map<std::string, Output *>;
 
-/// A weak reference to an output of a node (by name).
-class NodeRef {
-  friend class Node;
 
-public:
-  using Ptr = std::unique_ptr<NodeRef>;
-  NodeRef(Node *owner, std::string path = "", std::string outputName = "");
-  ~NodeRef();
-
-  bool set(std::string path, std::string outputName) {
-    disconnect();
-    path_ = std::move(path);
-    outputName_ = std::move(outputName);
-    return resolve();
-  }
-
-private:
-  bool resolve();
-
-  void disconnect();
-  /// Called when the referenced output is about to be deleted.
-  void referenceDeleted();
-
-  Node *owner_;
-  Node *target_;
-  Output *output_;
-  std::string path_;
-  std::string outputName_;
-};
-
-/// The input of a node that shows up as a connector in the node graph.
-class Input {
-  friend class Node;
-
-public:
-  using Ptr = std::unique_ptr<Input>;
-
-  Input(Node *owner, int id, std::string name)
-      : nodeRef_{owner}, id_{id}, name_{name} {}
-  ~Input() {}
-
-  int id() const { return id_; }
-  util::StringRef name() const { return name_; }
-
-  void set(std::string node, std::string output) { nodeRef_.set(node, output); }
-
-  static Ptr make(Node *owner, int id, std::string name) {
-    return std::make_unique<Input>(owner, id, std::move(name));
-  }
-
-private:
-  int id_;
-  std::string name_;
-  NodeRef nodeRef_;
-};
-
+/*
 /// The output of a node that shows up as a connector in the node graph.
 class Output {
   friend class Node;
@@ -146,10 +139,7 @@ public:
   }
 
 private:
-  int id_;
-  std::string name_;
-  std::vector<Node *> dependents_; // dependent nodes
-};
+};*/
 
 /// Parameters are displayed in the parameter panel.
 class Param {
@@ -226,19 +216,15 @@ T *pushUniquePtr(Container &container, std::unique_ptr<T> ptr) {
 /// The main purpose of this class is to unify the way dependencies between
 /// operations are handled.
 class Node {
-  friend class NodeRef;
   friend class Observer;
-  friend class Input;
-  friend class Output;
   friend class Param;
   friend class Network;
 
 public:
   using Ptr = std::unique_ptr<Node>;
 
-  Node(Network *parent) : parent_{parent} {}
-
-  Node(std::string name, Network *parent) : name_{name}, parent_{parent} {}
+  Node(Network *parent);
+  Node(std::string name, Network *parent);
   virtual ~Node();
 
   // Name
@@ -255,13 +241,16 @@ public:
   int paramCount() const;
   Param *param(int index);
 
-  // sever all connections
-  void disconnect();
-
   Input *createInput(std::string name);
   void deleteInput(Input *input);
+  void connectInput(Input *input, Node* source, Output* output);
+  void connectInput(Input *input, std::string node, std::string output);
+  bool resolveInput(Input* input);
+  void disconnectInput(Input* input);
+  int referenceCount(Node* source, Output* output);
   Output *createOutput(std::string name);
   void deleteOutput(Output *output);
+  void disconnectOutput(Output* output);
   Param *createParameter(std::string name, std::string description,
                          double initValue = 0.0);
   void deleteParameter(Param *p);
@@ -271,66 +260,50 @@ public:
   Input *input(util::StringRef name);
   Output *output(int id);
   Output *output(util::StringRef name);
-  void connectInput(Input *input, Node *source, Output *sourceOutput);
 
 protected:
-  /// A child node has been added.
   void onChildAdded(Node *node);
-  /// A child node is about to be removed.
   void onChildRemoved(Node *node);
-  /// A reference to a node has been added.
   void onReferenceAdded(Node *to);
-  /// A reference to a node is about to be removed.
   void onReferenceRemoved(Node *to);
-  /// This node is being deleted.
   void onNodeDeleted();
-  ///
   void onInputAdded(Input *input);
   void onInputRemoved(Input *input);
   void onOutputAdded(Output *output);
   void onOutputRemoved(Output *output);
-  /// A dependent node has been added on the specified output.
-  void onConnectOutput(Node *node, Output *output);
-  /// A dependent node is about to be removed from the specified output.
-  void onDisconnectOutput(Node *node, Output *output);
-
+  void onConnectOutput(Output *output, Node *targetNode);
+  void onDisconnectOutput(Output *output, Node *targetNode);
+  void onConnectionAdded(Node* source, Output* output, Node *dest, Input* input);
+  void onConnectionRemoved(Node* source, Output* output, Node *dest, Input* input);
   /// Notifies all observers about an event.
   void notify(const EventData &e);
 
-  /// Called when a referenced node has been deleted, or a referenced output
-  /// has been deleted.
-  void referenceDeleted(Node *ref, Output *output);
-
 private:
-  /// Plugs a dependent node into the specified output. The output
-  /// should belong to this node.
-  void connectOutput(Node *dep, Output *output);
-  /// Unplugs a dependent node from the specified output. The output
-  /// should belong to this node.
-  void disconnectOutput(Node *dep, Output *output);
-
-  void addReference(NodeRef *ref);
-  void removeReference(NodeRef *ref);
+	void addDependentNode(Output* output, Node* destination, Input* input);
+	void removeDependentNode(Output* output, Node* destination, Input* input);
+	void doDisconnectInput(Input* input, bool removeReferenceFromOutput);
+	std::string makeUniqueInputName(std::string s, int id);
+	std::string makeUniqueOutputName(std::string s, int id);
+	
   void addObserver(Observer *obs);
   void removeObserver(Observer *obs);
 
-  int getInputId() { return inputIdCount_++; }
-  int getOutputId() { return outputIdCount_++; }
+  int getInputId() { return inputIdCounter_++; }
+  int getOutputId() { return outputIdCounter_++; }
 
   bool dirty_ = true;
   std::string name_;
-  int outputIdCount_ = 0;
-  int inputIdCount_ = 0;
+  int outputIdCounter_ = 0;
+  int inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.
   int id_ = 0;
 
   // parent of this node, or nullptr if this is the root network
   Network *parent_ = nullptr;
   std::vector<Param::Ptr> params_;
-  std::vector<Input::Ptr> inputs_;
-  std::vector<Output::Ptr> outputs_;
-  std::vector<NodeRef *> references_;
-
+  std::vector<std::unique_ptr<Input>> inputs_;
+  std::vector<std::unique_ptr<Output>> outputs_;
+  
   // observers
   int notifying_ = 0;
   std::vector<Observer *> observers_;

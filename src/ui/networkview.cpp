@@ -14,12 +14,9 @@
 #include <QWheelEvent>
 #include <algorithm>
 
-#include "render/input.h"
-#include "render/output.h"
-
-using render::Input;
-using render::Node;
-using render::Output;
+using node::Input;
+using node::Node;
+using node::Output;
 
 //=====================================================================================
 // Node item metrics
@@ -37,18 +34,18 @@ NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
                                                      QGraphicsItem *parent)
     : QGraphicsObject{parent}, size_{size}, node_{node} {
   nodeObserver_ =
-      render::Observer::make(node, [this](const render::EventData &e) {
+      node::Observer::make(node, [this](const node::EventData &e) {
         switch (e.type) {
-        case render::EventType::InputAdded:
+        case node::EventType::InputAdded:
           this->inputConnectorAdded(e.u.inputAdded.input);
           break;
-        case render::EventType::InputRemoved:
+        case node::EventType::InputRemoved:
           this->inputConnectorRemoved(e.u.inputRemoved.input);
           break;
-        case render::EventType::OutputAdded:
+        case node::EventType::OutputAdded:
           this->outputConnectorAdded(e.u.outputAdded.output);
           break;
-        case render::EventType::OutputRemoved:
+        case node::EventType::OutputRemoved:
           this->outputConnectorRemoved(e.u.outputRemoved.output);
           break;
         default:
@@ -129,9 +126,9 @@ void NodeGraphicsObjectPrivate::paint(QPainter *painter,
   painter->setFont(font);
   QFontMetricsF metrics{font};
   auto nodeName = node_->name();
-  QString elided =
-      metrics.elidedText(QString::fromUtf8(nodeName.data(), nodeName.size()),
-                         Qt::ElideRight, textRegion.width());
+  QString elided = metrics.elidedText(
+      QString::fromUtf8(nodeName.data(), (int)nodeName.size()), Qt::ElideRight,
+      textRegion.width());
   QTextOption opt{Qt::AlignVCenter};
   opt.setWrapMode(QTextOption::NoWrap);
   painter->drawText(textRegion, elided, opt);
@@ -231,6 +228,10 @@ ConnectorGraphicsObjectPrivate::ConnectorGraphicsObjectPrivate(
   setAcceptHoverEvents(true);
 }
 
+ConnectorGraphicsObjectPrivate::~ConnectorGraphicsObjectPrivate() {
+	qDebug() << "~ConnectorGraphicsObjectPrivate";
+}
+
 QRectF ConnectorGraphicsObjectPrivate::boundingRect() const {
   return QRectF{
       QPointF{-CONNECTOR_RADIUS, -CONNECTOR_RADIUS},
@@ -281,15 +282,25 @@ void NetworkScene::setNetwork(Node *network) {
   // reset();
   network_ = network;
   networkObserver_ =
-      render::Observer::make(network_, [this](const render::EventData &e) {
+      node::Observer::make(network_, [this](const node::EventData &e) {
         switch (e.type) {
-        case render::EventType::ChildAdded:
+        case node::EventType::ChildAdded:
           nodeAdded(e.u.childAdded.node);
           break;
-        case render::EventType::ChildRemoved:
+        case node::EventType::ChildRemoved:
           nodeRemoved(e.u.childRemoved.node);
           break;
-        case render::EventType::NodeDeleted:
+        case node::EventType::ConnectionAdded:
+          connectionAdded(e.u.connectionAdded.source,
+                          e.u.connectionAdded.output, e.u.connectionAdded.dest,
+                          e.u.connectionAdded.input);
+		  break;
+		case node::EventType::ConnectionRemoved:
+			connectionRemoved(e.u.connectionAdded.source,
+				e.u.connectionAdded.output, e.u.connectionAdded.dest,
+				e.u.connectionAdded.input);
+			break;
+        case node::EventType::NodeDeleted:
         default:
           break;
         }
@@ -329,38 +340,30 @@ void NetworkScene::nodeDeleteRequested(const Node* node) {
   model_->removeNode(i);
 }*/
 
-void inputConnectorAdded(render::Node *node, render::Input *input);
-void outputConnectorAdded(render::Node *node, render::Input *input);
-void inputConnectorRemoved(render::Node *node, render::Output *output);
-void outputConnectorRemoved(render::Node *node, render::Output *output);
-void connectionAdded(render::Node *from, render::Output *output,
-                     render::Node *to, render::Input *input);
-void connectionRemoved(render::Node *from, render::Output *output,
-                       render::Node *to, render::Input *input);
-
-void NetworkScene::inputConnectorAdded(render::Node *node,
-                                       render::Input *input) {
+void NetworkScene::inputConnectorAdded(node::Node *node,
+                                       node::Input *input) {
   nodes_[node]->inputConnectorAdded(input);
 }
 
-void NetworkScene::outputConnectorAdded(render::Node *node,
-                                        render::Output *output) {
+void NetworkScene::outputConnectorAdded(node::Node *node,
+                                        node::Output *output) {
   nodes_[node]->outputConnectorAdded(output);
 }
 
-void NetworkScene::inputConnectorRemoved(render::Node *node,
-                                         render::Input *input) {
+void NetworkScene::inputConnectorRemoved(node::Node *node,
+                                         node::Input *input) {
   nodes_[node]->inputConnectorRemoved(input);
 }
-void NetworkScene::outputConnectorRemoved(render::Node *node,
-                                          render::Output *output) {
+void NetworkScene::outputConnectorRemoved(node::Node *node,
+                                          node::Output *output) {
   nodes_[node]->outputConnectorRemoved(output);
 }
 
-void NetworkScene::connectionAdded(render::Node *from, render::Output *output,
-                                   render::Node *to, render::Input *input) {
-  auto srcNode = nodes_[from];
-  auto dstNode = nodes_[to];
+void NetworkScene::connectionAdded(node::Node *source, node::Output *output,
+                                   node::Node *destination,
+                                   node::Input *input) {
+  auto srcNode = nodes_[source];
+  auto dstNode = nodes_[destination];
 
   auto srcConn = srcNode->findOutputConnector(output);
   auto dstConn = dstNode->findInputConnector(input);
@@ -372,8 +375,8 @@ void NetworkScene::connectionAdded(render::Node *from, render::Output *output,
   connection->updatePositions();
 }
 
-void NetworkScene::connectionRemoved(render::Node *from, render::Output *output,
-                                     render::Node *to, render::Input *input) {
+void NetworkScene::connectionRemoved(node::Node *from, node::Output *output,
+                                     node::Node *to, node::Input *input) {
   connections_.erase(
       std::remove_if(connections_.begin(), connections_.end(),
                      [=](NodeConnectionGraphicsItemPrivate *item) {
@@ -397,9 +400,6 @@ void NetworkScene::createNodeVisual(Node *node) {
   n->setPos(0.0, 0.0); // TODO
   addItem(n);
   nodes_.insert({node, n});
-  // connect(n, &NodeGraphicsObjectPrivate::deleteRequested, this,
-  // &NetworkScene::nodeD		// TODO
-  //        SLOT(nodeDeleteRequested(const QPersistentModelIndex &)));
   n->setFlags(QGraphicsItem::ItemIsMovable | QGraphicsItem::ItemIsSelectable);
 }
 

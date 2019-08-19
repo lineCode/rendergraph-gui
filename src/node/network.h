@@ -1,8 +1,8 @@
 #pragma once
-#include "render/node.h"
+#include "node/node.h"
 #include "util/arrayref.h"
 
-namespace render {
+namespace node {
 
 /// A node that contains child nodes.
 class Network : public Node {
@@ -36,33 +36,33 @@ public:
   Node *findChildByName(util::StringRef name);
 
   void addConnection(util::StringRef from, util::StringRef fromOutput,
-                     util::StringRef to, util::StringRef toInput) {
-    auto fromNode = findChildByName(from);
-    if (!fromNode) // emit an error somehow
-      return;
+                     util::StringRef to, util::StringRef toInput) 
+  {
     auto toNode = findChildByName(to);
     if (!toNode)
-      return;
-    auto output = fromNode->output(fromOutput);
-    if (!output)
       return;
     auto input = toNode->input(toInput);
     if (!input)
       return;
-
-    // found everything
-	// TODO
+	toNode->connectInput(input, from.to_string(), fromOutput.to_string());
   }
 
-  void addConnection(render::Node *from, int outputId, render::Node *to,
-                     int inputId) {}
+  void addConnection(Node *source, Output* output, Node *destination,
+                     Input* input) 
+  {
+	  destination->connectInput(input, source, output);
+  }
 
   static Ptr make(Network *parent, std::string name) {
     return std::make_unique<Network>(std::move(name), parent);
   }
 
 private:
+  
+	void makeNameUnique(std::string& name);
+
   std::vector<Node::Ptr> children_;
+  int uniqueNameCounter_ = 0;
 };
 
 } // namespace render

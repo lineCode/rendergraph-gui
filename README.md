@@ -33,5 +33,9 @@ TODO
     * `gfx/`: backend-agnostic GPU graphics and compute module
     * `gfxopengl/`: OpenGL API backend for gfx
     * `ui/`: GUI-related code (Qt stuff, mostly)
-    * `render/`:
-    * `util/`: misc utility functions and data structures used throughout the project
+    * `node/`: generic node networks
+		* Contains the `Node` and `Network` base classes that implement the common functionality of node networks (managing input/outputs, connections, dependencies, etc.).
+    * `img/`: Image engine
+		* Contains the implementation of `ScreenSpaceNetwork`, which represents a graph of interdependent image operations to be executed on a GPU. 
+		  Operations are defined by small, composable snippets of shader code.
+	* `util/`: misc utility functions and data structures used throughout the project

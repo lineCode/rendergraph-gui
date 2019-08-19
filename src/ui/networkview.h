@@ -1,7 +1,7 @@
 #pragma once
 #include "abstractnetworkmodel.h"
-#include "render/node.h"
-#include "render/observer.h"
+#include "node/node.h"
+#include "node/observer.h"
 #include <QAbstractItemModel>
 #include <QGraphicsLineItem>
 #include <QGraphicsLinearLayout>
@@ -20,9 +20,10 @@ class ConnectorGraphicsObjectPrivate : public QGraphicsObject {
 public:
   friend class NetworkScene;
   friend class NetworkView;
-  ConnectorGraphicsObjectPrivate(render::Node* node, QGraphicsItem *parent = nullptr);
+  ConnectorGraphicsObjectPrivate(node::Node *node,
+                                 QGraphicsItem *parent = nullptr);
 
-  virtual ~ConnectorGraphicsObjectPrivate() {}
+  virtual ~ConnectorGraphicsObjectPrivate();
   QRectF boundingRect() const override;
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
              QWidget *widget) override;
@@ -31,7 +32,7 @@ public:
   void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
 
 protected:
-	render::Node* node_;
+  node::Node *node_;
   bool hover_ = false;
 };
 
@@ -44,12 +45,12 @@ public:
   friend class NetworkScene;
   friend class NetworkView;
   friend class NodeGraphicsObjectPrivate;
-  InputConnectorGraphicsObjectPrivate(render::Node* node, render::Input* input,
+  InputConnectorGraphicsObjectPrivate(node::Node *node, node::Input *input,
                                       QGraphicsItem *parent = nullptr)
-      : ConnectorGraphicsObjectPrivate{node, parent}, input_{ input } {}
+      : ConnectorGraphicsObjectPrivate{node, parent}, input_{input} {}
 
 protected:
-  render::Input* input_;
+  node::Input *input_;
   bool hover_ = false;
 };
 
@@ -61,12 +62,13 @@ public:
   friend class NetworkScene;
   friend class NetworkView;
   friend class NodeGraphicsObjectPrivate;
-  OutputConnectorGraphicsObjectPrivate(render::Node* node, render::Output* output,
+  OutputConnectorGraphicsObjectPrivate(node::Node *node,
+                                       node::Output *output,
                                        QGraphicsItem *parent = nullptr)
-      : ConnectorGraphicsObjectPrivate{node, parent}, output_{ output } {}
+      : ConnectorGraphicsObjectPrivate{node, parent}, output_{output} {}
 
 protected:
-	render::Output* output_;
+  node::Output *output_;
   bool hover_ = false;
 };
 
@@ -76,7 +78,7 @@ class NodeGraphicsObjectPrivate : public QGraphicsObject {
 public:
   friend class NetworkScene;
   friend class NetworkView;
-  NodeGraphicsObjectPrivate(QSizeF size, render::Node *node,
+  NodeGraphicsObjectPrivate(QSizeF size, node::Node *node,
                             QGraphicsItem *parent = nullptr);
   virtual ~NodeGraphicsObjectPrivate() {}
 
@@ -92,12 +94,13 @@ private Q_SLOTS:
   void positionChanged();
 
 private:
-	InputConnectorGraphicsObjectPrivate *findInputConnector(render::Input* input);
-	OutputConnectorGraphicsObjectPrivate *findOutputConnector(render::Output* output);
-  void inputConnectorAdded(render::Input* input);
-  void inputConnectorRemoved(render::Input* input);
-  void outputConnectorAdded(render::Output* output);
-  void outputConnectorRemoved(render::Output* output);
+  InputConnectorGraphicsObjectPrivate *findInputConnector(node::Input *input);
+  OutputConnectorGraphicsObjectPrivate *
+  findOutputConnector(node::Output *output);
+  void inputConnectorAdded(node::Input *input);
+  void inputConnectorRemoved(node::Input *input);
+  void outputConnectorAdded(node::Output *output);
+  void outputConnectorRemoved(node::Output *output);
 
   void hoverEnterEvent(QGraphicsSceneHoverEvent *) override;
   void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
@@ -105,19 +108,17 @@ private:
   void dropEvent(QGraphicsSceneDragDropEvent *event) override;
   void contextMenuEvent(QGraphicsSceneContextMenuEvent *event) override;
 
-
   void NodeGraphicsObjectPrivate::updateConnectorLayout(
-	  QList<ConnectorGraphicsObjectPrivate *> &connectors);
+      QList<ConnectorGraphicsObjectPrivate *> &connectors);
 
   QSizeF size_;
   bool hover_ = false;
-  render::Node *node_;
-  render::Observer::Ptr nodeObserver_;
+  node::Node *node_;
+  node::Observer::Ptr nodeObserver_;
   QGraphicsWidget *inputConnectorsWidget_;
   QGraphicsWidget *outputConnectorsWidget_;
   QList<ConnectorGraphicsObjectPrivate *> inputConnectors_;
   QList<ConnectorGraphicsObjectPrivate *> outputConnectors_;
-
 };
 
 class NodeConnectionGraphicsItemPrivate : public QGraphicsPathItem {
@@ -130,7 +131,6 @@ public:
   void updatePositions();
 
 private:
-
   OutputConnectorGraphicsObjectPrivate *srcConn_;
   InputConnectorGraphicsObjectPrivate *dstConn_;
 };
@@ -142,30 +142,32 @@ public:
   friend class NetworkView;
   NetworkScene(QObject *parent = nullptr);
 
-  void setNetwork(render::Node *node);
-  render::Node *network() const;
+  void setNetwork(node::Node *node);
+  node::Node *network() const;
 
-  void createNodeVisual(render::Node *node);
+  void createNodeVisual(node::Node *node);
 
-  QVector<render::Node *> selectedNodes() const;
+  QVector<node::Node *> selectedNodes() const;
 
 Q_SIGNALS:
 
 private Q_SLOTS:
-  void nodeAdded(render::Node *node);
-  void nodeRemoved(render::Node *node);
-  void inputConnectorAdded(render::Node *node, render::Input* input);
-  void outputConnectorAdded(render::Node *node, render::Output* output);
-  void inputConnectorRemoved(render::Node *node, render::Input* input);
-  void outputConnectorRemoved(render::Node *node, render::Output* output);
-  void connectionAdded(render::Node* from, render::Output* output, render::Node *to, render::Input* input);
-  void connectionRemoved(render::Node* from, render::Output* output, render::Node *to, render::Input* input);
+  void nodeAdded(node::Node *node);
+  void nodeRemoved(node::Node *node);
+  void inputConnectorAdded(node::Node *node, node::Input *input);
+  void outputConnectorAdded(node::Node *node, node::Output *output);
+  void inputConnectorRemoved(node::Node *node, node::Input *input);
+  void outputConnectorRemoved(node::Node *node, node::Output *output);
+  void connectionAdded(node::Node *source, node::Output *output,
+                       node::Node *destination, node::Input *input);
+  void connectionRemoved(node::Node *source, node::Output *output,
+                         node::Node *destination, node::Input *input);
 
 private:
   void updateConnections();
-  render::Node *network_;
-  render::Observer::Ptr networkObserver_;
-  std::unordered_map<render::Node *, NodeGraphicsObjectPrivate *> nodes_;
+  node::Node *network_;
+  node::Observer::Ptr networkObserver_;
+  std::unordered_map<node::Node *, NodeGraphicsObjectPrivate *> nodes_;
   std::vector<NodeConnectionGraphicsItemPrivate *> connections_;
 };
 
@@ -175,37 +177,40 @@ class NetworkView : public QGraphicsView {
 public:
   friend class NodeGraphicsObjectPrivate;
 
-  NetworkView(render::Node *network = nullptr, QWidget *parent = nullptr);
+  NetworkView(node::Node *network = nullptr, QWidget *parent = nullptr);
   ~NetworkView();
 
-  void setNetwork(render::Node *network) { scene_.setNetwork(network); }
-  QVector<render::Node *> selectedNodes() const {
+  void setNetwork(node::Node *network) { scene_.setNetwork(network); }
+  QVector<node::Node *> selectedNodes() const {
     return scene_.selectedNodes();
   }
 
 Q_SIGNALS:
-  void connectionRequest(render::Node* from, render::Output* output, render::Node *to, render::Input* input);
+  void connectionRequest(node::Node *from, node::Output *output,
+                         node::Node *to, node::Input *input);
 
 public Q_SLOTS:
-  void nodeAdded(render::Node *node) { scene_.nodeAdded(node); }
-  void nodeRemoved(render::Node *node) { scene_.nodeRemoved(node); }
-  void inputConnectorAdded(render::Node *node, render::Input* input) {
+  void nodeAdded(node::Node *node) { scene_.nodeAdded(node); }
+  void nodeRemoved(node::Node *node) { scene_.nodeRemoved(node); }
+  void inputConnectorAdded(node::Node *node, node::Input *input) {
     scene_.inputConnectorAdded(node, input);
   }
-  void outputConnectorAdded(render::Node *node, render::Output* output) {
+  void outputConnectorAdded(node::Node *node, node::Output *output) {
     scene_.outputConnectorAdded(node, output);
   }
-  void inputConnectorRemoved(render::Node *node, render::Input* input) {
+  void inputConnectorRemoved(node::Node *node, node::Input *input) {
     scene_.inputConnectorRemoved(node, input);
   }
-  void outputConnectorRemoved(render::Node *node, render::Output* output) {
+  void outputConnectorRemoved(node::Node *node, node::Output *output) {
     scene_.outputConnectorRemoved(node, output);
   }
-  void connectionAdded(render::Node* from, render::Output* output, render::Node *to, render::Input* input) {
-    scene_.connectionAdded(from, output, to, input);
+  void connectionAdded(node::Node *source, node::Output *output,
+                       node::Node *destination, node::Input *input) {
+    scene_.connectionAdded(source, output, destination, input);
   }
-  void connectionRemoved(render::Node* from, render::Output* output, render::Node *to, render::Input* input) {
-    scene_.connectionRemoved(from, output, to, input);
+  void connectionRemoved(node::Node *source, node::Output *output,
+                         node::Node *destination, node::Input *input) {
+    scene_.connectionRemoved(source, output, destination, input);
   }
 
 protected:

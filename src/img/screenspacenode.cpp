@@ -1,13 +1,15 @@
-#include "render/screenspacenode.h"
+#include "img/screenspacenode.h"
 #include "fmt/format.h"
 #include "gfx/pipeline.h"
 #include "gfx/signature.h"
-#include "render/constantbufferbuilder.h"
-#include "render/image.h"
-#include "render/node.h"
+#include "img/constantbufferbuilder.h"
+#include "img/image.h"
+#include "node/node.h"
 #include <map>
 
-namespace render {
+using namespace node;
+
+namespace img {
 
 static const char VERT_SRC_TEMPLATE[] = R"(
 #version 450

@@ -1,21 +1,19 @@
-#include "render/node.h"
+#include "node/node.h"
 #include "ui/networkview.h"
 
 namespace ui {
-namespace nodes {
 
 class NodeParams : public QWidget {
   Q_OBJECT
 public:
-  NodeParams(render::Node &node, NetworkView &networkView);
+  NodeParams(::node::Node &node, NetworkView &networkView);
 
   void rebuild();
 
 private:
-	render::Node &node_;
+  ::node::Node &node_;
   NetworkView &networkView_;
   quint64 key_;
 };
 
-} // namespace nodes
 } // namespace ui

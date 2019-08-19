@@ -4,7 +4,7 @@
 #include "gfx/shader.h"
 #include "util/stringref.h"
 
-namespace render {
+namespace img {
 
 enum class PrimitiveType {
   Float,
@@ -68,4 +68,4 @@ public:
 
 private:
 };
-} // namespace render
+} // namespace img

@@ -12,9 +12,9 @@
 #include <QStatusBar>
 #include <QVBoxLayout>
 
-using render::Node;
-using render::Output;
-using render::Input;
+using node::Input;
+using node::Node;
+using node::Output;
 
 namespace ui {
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -23,17 +23,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput->show();
 
   // root graph node
-  root_ = std::make_unique<render::Network>("root", nullptr);
+  root_ = std::make_unique<node::Network>("root", nullptr);
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
 
   connect(networkView, SIGNAL(customContextMenuRequested(const QPoint &)), this,
           SLOT(showNetworkViewContextMenu(const QPoint &)));
-  connect(
-      networkView,
-	  &NetworkView::connectionRequest,
-	  this, &MainWindow::addConnection);
+  connect(networkView, &NetworkView::connectionRequest, this,
+          &MainWindow::addConnection);
 
   auto buttonScaleUp = new QPushButton("+");
   connect(buttonScaleUp, SIGNAL(released()), this, SLOT(scaleUp()));
@@ -150,10 +148,9 @@ void MainWindow::deleteSelectedNodes() {
       (size_t)selectedNodes.size(), selectedNodes.data()});
 }
 
-void MainWindow::addConnection(render::Node* from, render::Output* output, render::Node *to, render::Input* input) {
-	
-	//root_->addConnection()
-  // networkModel.addConnection(fromConnector, toConnector);
+void MainWindow::addConnection(node::Node *from, node::Output *output,
+                               node::Node *to, node::Input *input) {
+  root_->addConnection(from, output, to, input);
 }
 
 void MainWindow::scaleUp() {
@@ -165,11 +162,11 @@ void MainWindow::scaleDown() {
 }
 
 void MainWindow::addNode() {
-  auto nodeA = render::ScreenSpaceNode::make(root_.get(), "nodeA");
-  //auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
-  auto nodeB = render::ScreenSpaceNode::make(root_.get(), "nodeB");
-  //auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
-   
+  auto nodeA = img::ScreenSpaceNode::make(root_.get(), "nodeA");
+  // auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
+  auto nodeB = img::ScreenSpaceNode::make(root_.get(), "nodeB");
+  // auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
+
   nodeA->createParameter("testParam", "Test parameter", 0.0);
   nodeA->createParameter("testParam2", "Test parameter2", 0.0);
 
@@ -183,9 +180,9 @@ void MainWindow::addNode() {
   nodeB->createOutput("output0");
   nodeB->createOutput("output1");
 
-  //nodeA_UI->rebuildParamUI(paramPanel_);
-  //networkView->nodeAdded(nodeA);
-  //networkView->nodeAdded(nodeB);
+  // nodeA_UI->rebuildParamUI(paramPanel_);
+  // networkView->nodeAdded(nodeA);
+  // networkView->nodeAdded(nodeB);
 }
 
 MainWindow::~MainWindow() {}

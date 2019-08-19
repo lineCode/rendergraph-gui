@@ -4,7 +4,7 @@
 #include "gfx/sampler.h"
 #include "util/filesystem.h"
 
-namespace render {
+namespace img {
 
 class Image {
 public:
@@ -22,7 +22,7 @@ public:
 private:
   gfx::ImageDesc desc_;
   gfx::Image gpu_;
-  //util::path path_;
+  // util::path path_;
 };
 
-} // namespace render
+} // namespace img

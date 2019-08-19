@@ -2,7 +2,7 @@
 #include "gfx/gfx.h"
 #include <vector>
 
-namespace render {
+namespace img {
 
 enum class Std140BaseType {
   Float,

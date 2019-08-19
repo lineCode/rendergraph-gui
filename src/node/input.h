@@ -3,6 +3,6 @@
 #include <memory>
 #include <util/stringref.h>
 
-namespace render {
+namespace node {
 
 } // namespace render

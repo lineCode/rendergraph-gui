@@ -1,13 +1,13 @@
 #pragma once
 #include "gfx/image.h"
 #include "gfx/pipeline.h"
-#include "render/input.h"
-#include "render/network.h"
-#include "render/output.h"
-#include "render/rendertarget.h"
+#include "node/node.h"
+#include "node/network.h"
+#include "img/rendertarget.h"
 #include <memory>
+#include <string>
 
-namespace render {
+namespace img {
 
 enum class ImageOutputScale {
   /// output size is size defined in the current stylization project
@@ -49,7 +49,7 @@ class RenderTarget {
 public:
   using Ptr = std::unique_ptr<RenderTarget>;
 
-  RenderTarget(Node *owner, std::string name, int outputId)
+  RenderTarget(node::Node *owner, std::string name, int outputId)
       : outputId_{outputId} {
     // just set a dummy desc for now
     // the node should call setDesc before
@@ -63,7 +63,7 @@ public:
     desc_.arrayLayerCount = 1;
   }
 
-  RenderTarget(Node *owner, std::string name, const gfx::ImageDesc &desc)
+  RenderTarget(node::Node *owner, std::string name, const gfx::ImageDesc &desc)
       : desc_{desc} {}
 
   const gfx::ImageDesc &desc() const { return desc_; }
@@ -75,7 +75,7 @@ public:
   }
   int outputId() const { return outputId_; }
 
-  static Ptr make(Node *owner, std::string name, int outputId) {
+  static Ptr make(node::Node *owner, std::string name, int outputId) {
     return std::make_unique<RenderTarget>(owner, std::move(name), outputId);
   }
 
@@ -93,9 +93,9 @@ private:
 /// A node representing a screen space operation.
 ///
 /// `ScreenSpaceNode`s execute in the "screen space" context.
-class ScreenSpaceNode : public Node {
+class ScreenSpaceNode : public node::Node {
 public:
-  ScreenSpaceNode(Network *parent, std::string name);
+  ScreenSpaceNode(node::Network *parent, std::string name);
   //------ Fragment shader ------
 
   /// Returns the body of the fragment shader.
@@ -114,7 +114,7 @@ public:
   bool compilationSucceeded() const { return compilationSuccess_; }
   void execute(gfx::GraphicsBackend *gfx, const ScreenSpaceContext &ctx);
 
-  static ScreenSpaceNode *make(Network *parent, std::string name);
+  static ScreenSpaceNode *make(node::Network *parent, std::string name);
 
 private:
   bool compile(gfx::GraphicsBackend *gfx);

@@ -1,10 +1,12 @@
 
 #include "network.h"
 #include <algorithm>
+#include "fmt/format.h"
 
-namespace render {
+namespace node {
 
 Node *Network::addChild(Node::Ptr ptr) {
+	makeNameUnique(ptr->name_);
   auto p = ptr.get();
   children_.push_back(std::move(ptr));
   onChildAdded(p);
@@ -21,7 +23,6 @@ void Network::deleteChildren(util::ArrayRef<Node *const> nodes) {
                            [this,nodes](const std::unique_ptr<Node> &ptr) {
                              for (auto n : nodes) {
                                if (ptr.get() == n) {
-								   onChildRemoved(n);
                                  return true;
                                }
                              }
@@ -44,6 +45,15 @@ Node *Network::findChildByName(util::StringRef name) {
     return (*p).get();
   }
   return nullptr;
+}
+
+void Network::makeNameUnique(std::string& name) {
+	for (auto&& c : children_) {
+		if (c->name_ == name) {
+			name.append(fmt::format("_{}", uniqueNameCounter_++));
+			break;
+		}
+	}
 }
 
 } // namespace render

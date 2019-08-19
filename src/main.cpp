@@ -13,7 +13,7 @@ int main(int argc, char **argv) {
 	auto app = new QApplication(argc, argv);
 	QApplication::setStyle(QStyleFactory::create("Fusion"));
 	// modify palette to dark
-	QPalette darkPalette;
+	/*QPalette darkPalette;
 	darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
 	darkPalette.setColor(QPalette::WindowText, Qt::white);
 	darkPalette.setColor(QPalette::Disabled, QPalette::WindowText, QColor(127, 127, 127));
@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 	darkPalette.setColor(QPalette::Disabled, QPalette::Highlight, QColor(80, 80, 80));
 	darkPalette.setColor(QPalette::HighlightedText, Qt::white);
 	darkPalette.setColor(QPalette::Disabled, QPalette::HighlightedText, QColor(127, 127, 127));
-	QApplication::setPalette(darkPalette);
+	QApplication::setPalette(darkPalette);*/
 
 	auto mainWindow = new ui::MainWindow();
 	mainWindow->show();

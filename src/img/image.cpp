@@ -1,6 +1,6 @@
-#include "render/image.h"
+#include "img/image.h"
 
-namespace render {
+namespace img {
 
 /// Creates a default (empty) image. Does not allocate any storage (CPU or GPU).
 Image::Image() {}
@@ -23,4 +23,4 @@ gfx::Image &Image::getGPUImage(gfx::GraphicsBackend *gfx) {
   return gpu_;
 }
 
-} // namespace render
+} // namespace img
