@@ -429,4 +429,11 @@ Output *Node::output(util::StringRef name) {
   return nullptr;
 }
 
+util::StringRef Node::inputName(Input* input) {
+	return input->name;
+}
+util::StringRef Node::outputName(Output* output) {
+	return output->name;
+}
+
 } // namespace node

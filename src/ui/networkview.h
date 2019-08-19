@@ -18,9 +18,13 @@ class NetworkView;
 class ConnectorGraphicsObjectPrivate : public QGraphicsObject {
   Q_OBJECT
 public:
+	enum class Kind {
+		Input,
+		Output
+	};
   friend class NetworkScene;
   friend class NetworkView;
-  ConnectorGraphicsObjectPrivate(node::Node *node,
+  ConnectorGraphicsObjectPrivate(node::Node *node, Kind kind,
                                  QGraphicsItem *parent = nullptr);
 
   virtual ~ConnectorGraphicsObjectPrivate();
@@ -28,10 +32,13 @@ public:
   void paint(QPainter *painter, const QStyleOptionGraphicsItem *option,
              QWidget *widget) override;
 
+  virtual std::string tooltip() const = 0;
   void hoverEnterEvent(QGraphicsSceneHoverEvent *) override;
   void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
+  Kind kind() const { return kind_; }
 
 protected:
+	Kind kind_;
   node::Node *node_;
   bool hover_ = false;
 };
@@ -47,11 +54,14 @@ public:
   friend class NodeGraphicsObjectPrivate;
   InputConnectorGraphicsObjectPrivate(node::Node *node, node::Input *input,
                                       QGraphicsItem *parent = nullptr)
-      : ConnectorGraphicsObjectPrivate{node, parent}, input_{input} {}
+      : ConnectorGraphicsObjectPrivate{node, ConnectorGraphicsObjectPrivate::Kind::Input, parent}, input_{input} {}
+
+  std::string tooltip() const override;
+  //void hoverEnterEvent(QGraphicsSceneHoverEvent *) override;
+  //void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
 
 protected:
   node::Input *input_;
-  bool hover_ = false;
 };
 
 //=============================================================================
@@ -65,11 +75,14 @@ public:
   OutputConnectorGraphicsObjectPrivate(node::Node *node,
                                        node::Output *output,
                                        QGraphicsItem *parent = nullptr)
-      : ConnectorGraphicsObjectPrivate{node, parent}, output_{output} {}
+      : ConnectorGraphicsObjectPrivate{node, ConnectorGraphicsObjectPrivate::Kind::Output, parent}, output_{output} {}
+
+  std::string tooltip() const override;
+  //void hoverEnterEvent(QGraphicsSceneHoverEvent *) override;
+  //void hoverLeaveEvent(QGraphicsSceneHoverEvent *) override;
 
 protected:
   node::Output *output_;
-  bool hover_ = false;
 };
 
 //=============================================================================

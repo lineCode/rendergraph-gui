@@ -260,6 +260,8 @@ public:
   Input *input(util::StringRef name);
   Output *output(int id);
   Output *output(util::StringRef name);
+  util::StringRef inputName(Input* input);
+  util::StringRef outputName(Output* output);
 
 protected:
   void onChildAdded(Node *node);

@@ -6,7 +6,7 @@
 using node::Network;
 
 namespace img {
-
+	/*
 ScreenSpaceNetwork::ScreenSpaceNetwork(std::string name, Network *parent)
     : Network{name, parent} {}
 
@@ -21,6 +21,6 @@ void ScreenSpaceNetwork::allocateRenderTargets(gfx::GraphicsBackend* gfx) {
 
 
 	}
-}
+}*/
 
 } // namespace img

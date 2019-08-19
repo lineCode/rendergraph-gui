@@ -33,25 +33,24 @@ const double CONNECTOR_RADIUS = 7.0;
 NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
                                                      QGraphicsItem *parent)
     : QGraphicsObject{parent}, size_{size}, node_{node} {
-  nodeObserver_ =
-      node::Observer::make(node, [this](const node::EventData &e) {
-        switch (e.type) {
-        case node::EventType::InputAdded:
-          this->inputConnectorAdded(e.u.inputAdded.input);
-          break;
-        case node::EventType::InputRemoved:
-          this->inputConnectorRemoved(e.u.inputRemoved.input);
-          break;
-        case node::EventType::OutputAdded:
-          this->outputConnectorAdded(e.u.outputAdded.output);
-          break;
-        case node::EventType::OutputRemoved:
-          this->outputConnectorRemoved(e.u.outputRemoved.output);
-          break;
-        default:
-          break;
-        }
-      });
+  nodeObserver_ = node::Observer::make(node, [this](const node::EventData &e) {
+    switch (e.type) {
+    case node::EventType::InputAdded:
+      this->inputConnectorAdded(e.u.inputAdded.input);
+      break;
+    case node::EventType::InputRemoved:
+      this->inputConnectorRemoved(e.u.inputRemoved.input);
+      break;
+    case node::EventType::OutputAdded:
+      this->outputConnectorAdded(e.u.outputAdded.output);
+      break;
+    case node::EventType::OutputRemoved:
+      this->outputConnectorRemoved(e.u.outputRemoved.output);
+      break;
+    default:
+      break;
+    }
+  });
   setAcceptHoverEvents(true);
   inputConnectorsWidget_ = new QGraphicsWidget{this};
   outputConnectorsWidget_ = new QGraphicsWidget{this};
@@ -209,6 +208,15 @@ void NodeGraphicsObjectPrivate::updateConnectorLayout(
 
 //=====================================================================================
 // NodeConnectionGraphicsItemPrivate
+
+std::string InputConnectorGraphicsObjectPrivate::tooltip() const {
+  return node_->inputName(input_).to_string();
+}
+
+std::string OutputConnectorGraphicsObjectPrivate::tooltip() const {
+  return node_->outputName(output_).to_string();
+}
+
 void NodeConnectionGraphicsItemPrivate::updatePositions() {
   QPainterPath p;
   auto srcPos = srcConn_->scenePos();
@@ -223,13 +231,13 @@ void NodeConnectionGraphicsItemPrivate::updatePositions() {
 //=====================================================================================
 // NodeConnectorGraphicsObjectPrivate
 ConnectorGraphicsObjectPrivate::ConnectorGraphicsObjectPrivate(
-    Node *node, QGraphicsItem *parent)
-    : QGraphicsObject{parent}, node_{node} {
+    Node *node, Kind kind, QGraphicsItem *parent)
+    : QGraphicsObject{parent}, kind_{kind}, node_{node} {
   setAcceptHoverEvents(true);
 }
 
 ConnectorGraphicsObjectPrivate::~ConnectorGraphicsObjectPrivate() {
-	qDebug() << "~ConnectorGraphicsObjectPrivate";
+  qDebug() << "~ConnectorGraphicsObjectPrivate";
 }
 
 QRectF ConnectorGraphicsObjectPrivate::boundingRect() const {
@@ -252,6 +260,14 @@ void ConnectorGraphicsObjectPrivate::paint(
   } else {
     pen.setWidthF(0.0);
     pen.setColor(Qt::transparent);
+  }
+
+  if (hover_) {
+	  QFont font{ "Iosevka", 13 };
+	  painter->setFont(font);
+
+    painter->drawText(QPointF{0.0, kind_ == Kind::Input ? -16.0 : 16.0},
+                      QString::fromStdString(tooltip()));
   }
 
   painter->setPen(pen);
@@ -294,12 +310,12 @@ void NetworkScene::setNetwork(Node *network) {
           connectionAdded(e.u.connectionAdded.source,
                           e.u.connectionAdded.output, e.u.connectionAdded.dest,
                           e.u.connectionAdded.input);
-		  break;
-		case node::EventType::ConnectionRemoved:
-			connectionRemoved(e.u.connectionAdded.source,
-				e.u.connectionAdded.output, e.u.connectionAdded.dest,
-				e.u.connectionAdded.input);
-			break;
+          break;
+        case node::EventType::ConnectionRemoved:
+          connectionRemoved(
+              e.u.connectionAdded.source, e.u.connectionAdded.output,
+              e.u.connectionAdded.dest, e.u.connectionAdded.input);
+          break;
         case node::EventType::NodeDeleted:
         default:
           break;
@@ -340,8 +356,7 @@ void NetworkScene::nodeDeleteRequested(const Node* node) {
   model_->removeNode(i);
 }*/
 
-void NetworkScene::inputConnectorAdded(node::Node *node,
-                                       node::Input *input) {
+void NetworkScene::inputConnectorAdded(node::Node *node, node::Input *input) {
   nodes_[node]->inputConnectorAdded(input);
 }
 
@@ -350,8 +365,7 @@ void NetworkScene::outputConnectorAdded(node::Node *node,
   nodes_[node]->outputConnectorAdded(output);
 }
 
-void NetworkScene::inputConnectorRemoved(node::Node *node,
-                                         node::Input *input) {
+void NetworkScene::inputConnectorRemoved(node::Node *node, node::Input *input) {
   nodes_[node]->inputConnectorRemoved(input);
 }
 void NetworkScene::outputConnectorRemoved(node::Node *node,
