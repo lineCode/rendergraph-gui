@@ -256,27 +256,30 @@ public:
   void deleteParameter(Param *p);
 
   // Inputs and outputs
-  Input *input(int id);
+  int inputCount() const { return (int)inputs_.size(); }
+  Input *input(int index);
   Input *input(util::StringRef name);
-  Output *output(int id);
+  int outputCount() const { return (int)outputs_.size(); }
+  Output *output(int index);
   Output *output(util::StringRef name);
   util::StringRef inputName(Input* input);
   util::StringRef outputName(Output* output);
 
 protected:
-  void onChildAdded(Node *node);
-  void onChildRemoved(Node *node);
-  void onReferenceAdded(Node *to);
-  void onReferenceRemoved(Node *to);
-  void onNodeDeleted();
-  void onInputAdded(Input *input);
-  void onInputRemoved(Input *input);
-  void onOutputAdded(Output *output);
-  void onOutputRemoved(Output *output);
-  void onConnectOutput(Output *output, Node *targetNode);
-  void onDisconnectOutput(Output *output, Node *targetNode);
-  void onConnectionAdded(Node* source, Output* output, Node *dest, Input* input);
-  void onConnectionRemoved(Node* source, Output* output, Node *dest, Input* input);
+  virtual void onChildAdded(Node *node);
+  virtual void onChildRemoved(Node *node);
+  virtual void onReferenceAdded(Node *to);
+  virtual void onReferenceRemoved(Node *to);
+  virtual void onNodeDeleted();
+  virtual void onInputAdded(Input *input);
+  virtual void onInputRemoved(Input *input);
+  virtual void onOutputAdded(Output *output);
+  virtual void onOutputRemoved(Output *output);
+  virtual void onConnectOutput(Output *output, Node *targetNode);
+  virtual void onDisconnectOutput(Output *output, Node *targetNode);
+  virtual void onConnectionAdded(Node* source, Output* output, Node *dest, Input* input);
+  virtual void onConnectionRemoved(Node* source, Output* output, Node *dest, Input* input);
+  
   /// Notifies all observers about an event.
   void notify(const EventData &e);
 

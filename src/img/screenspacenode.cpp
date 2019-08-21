@@ -4,8 +4,11 @@
 #include "gfx/signature.h"
 #include "img/constantbufferbuilder.h"
 #include "img/image.h"
+#include "img/screenspacenetwork.h"
 #include "node/node.h"
+#include "util/log.h"
 #include <map>
+#include <regex>
 
 using namespace node;
 
@@ -19,20 +22,27 @@ layout(location=0) out vec2 uv;
 void main() {
     uv = texcoord;
     gl_Position = vec4(a_position, 0.0, 1.0);
-	// <<<< insert additional interpolated attribs here >>>>
 }
 )";
 
 static const char FRAG_SRC_TEMPLATE[] = R"(
 #version 450
-layout(location=0) in vec2 a_position;
-layout(location=1) in vec2 texcoord;
-layout(location=0) out vec2 uv;
+layout(location=0) in vec2 f_position;
+layout(location=1) in vec2 f_texcoord;
+layout(location=0) out vec4 color;
+
 void main() {
-	// <<<< fetch all parameters >>>>
-	// <<<< paste snippet here >>>> 
+	<<<FRAG_SRC>>>
 }
 )";
+
+static const char DEFAULT_FRAG_CODE[] = "color = vec4(0.0, 0.0, 0.0, 1.0);";
+
+static std::string generateFragmentShaderSource(util::StringRef snippet) {
+  static std::regex template_re{"<<<FRAG_SRC>>>"};
+  return std::regex_replace(FRAG_SRC_TEMPLATE, template_re,
+                            snippet.to_string());
+}
 
 static const gfx::VertexLayoutElement POSITION_LAYOUT_ELEMENTS[] = {
     {{"POSITION", 0}, gfx::Format::R32G32_SFLOAT, 0},
@@ -41,17 +51,51 @@ static const gfx::VertexLayoutElement POSITION_LAYOUT_ELEMENTS[] = {
 static const gfx::VertexLayout POSITION_LAYOUT = {
     util::makeArrayRef(POSITION_LAYOUT_ELEMENTS), 16};
 
-util::StringRef ScreenSpaceNode::fragCode() const {
-  return util::StringRef{fragCode_.c_str(), fragCode_.size()};
+RenderTarget *ImgNode::createRenderTarget(const gfx::ImageDesc &desc) {
+
+  return nullptr;
 }
 
-void ScreenSpaceNode::setFragCode(std::string code) {
+void ImgNode::setRenderTargetDesc(const gfx::ImageDesc &desc) {}
+
+void ImgNode::deleteRenderTarget(RenderTarget *output) {}
+
+void ImgNode::assignOutputTarget(util::StringRef outputName,
+                                 RenderTarget *target) {
+
+  // issue: some outputs are assigned render targets, but others are assigned
+  // images
+  // -> assign output after execution, clear assignments when node is dirtied
+
+  auto out = output(outputName);
+  if (!out) {
+    util::log("WARNING ImgNode[{}]::assignOutputTarget: output `{}` "
+              "does not exist",
+              name().to_string(), outputName.to_string());
+    return;
+  }
+  for (auto &&entry : outputMap_) {
+    if (entry.output == out) {
+      // reassign output
+      entry.target = target;
+      // TODO send event
+      return;
+    }
+  }
+  // output not assigned
+  OutputTarget entry;
+  entry.output = out;
+  entry.target = target;
+  // TODO send event
+}
+
+void ImgNode::setFragCode(std::string code) {
   fragCode_ = std::move(code);
   shaderDirty_ = true;
   compilationSuccess_ = false;
 }
 
-bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
+bool ImgNode::compile(gfx::GraphicsBackend *gfx) {
 
   if (shaderDirty_ == false) {
     // no need to recompile the pipeline.
@@ -85,8 +129,11 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
     // shaders
     gfx::ShaderModule vertexShader{gfx, VERT_SRC_TEMPLATE,
                                    gfx::ShaderStageFlags::VERTEX};
-    gfx::ShaderModule fragmentShader{gfx, FRAG_SRC_TEMPLATE,
+    auto fragShaderSrc = generateFragmentShaderSource(fragCode_);
+    gfx::ShaderModule fragmentShader{gfx, fragShaderSrc,
                                      gfx::ShaderStageFlags::FRAGMENT};
+    util::log("ImgNode[{}]: fragment shader: \n{}", name().to_string(),
+              fragShaderSrc);
 
     // pipeline
     gfx::GraphicsPipelineDesc desc;
@@ -114,8 +161,12 @@ bool ScreenSpaceNode::compile(gfx::GraphicsBackend *gfx) {
   return true;
 }
 
-void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
-                              const ScreenSpaceContext &ctx) {
+void ImgNode::execute(gfx::GraphicsBackend *gfx,
+                      const ScreenSpaceContext &ctx) {
+  if (shaderDirty_) {
+    compile(gfx);
+  }
+
   // build the constant (uniform) buffer
   ConstantBufferBuilder b;
   // TODO push all parameters in the buffer
@@ -156,12 +207,13 @@ void ScreenSpaceNode::execute(gfx::GraphicsBackend *gfx,
   // renderTargets_[0]->markDirty();
 }
 
-ScreenSpaceNode::ScreenSpaceNode(Network *parent, std::string name)
-    : Node{std::move(name), parent} {}
+ImgNode::ImgNode(ImgNetwork &parent, std::string name)
+    : Node{std::move(name), &parent}, parent_{parent}, fragCode_{
+                                                           DEFAULT_FRAG_CODE} {}
 
-ScreenSpaceNode *ScreenSpaceNode::make(Network *parent, std::string name) {
-  return static_cast<ScreenSpaceNode *>(parent->addChild(
-      std::make_unique<ScreenSpaceNode>(parent, std::move(name))));
+ImgNode *ImgNode::make(ImgNetwork &parent, std::string name = "pass") {
+  return static_cast<ImgNode *>(
+      parent.addChild(std::make_unique<ImgNode>(parent, std::move(name))));
 }
 
-} // namespace render
+} // namespace img

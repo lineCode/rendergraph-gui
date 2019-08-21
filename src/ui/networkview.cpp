@@ -32,7 +32,8 @@ const double CONNECTOR_RADIUS = 7.0;
 // Constructor
 NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
                                                      QGraphicsItem *parent)
-    : QGraphicsObject{parent}, size_{size}, node_{node} {
+    : QGraphicsObject{parent}, size_{size}, node_{node}
+{
   nodeObserver_ = node::Observer::make(node, [this](const node::EventData &e) {
     switch (e.type) {
     case node::EventType::InputAdded:
@@ -51,6 +52,7 @@ NodeGraphicsObjectPrivate::NodeGraphicsObjectPrivate(QSizeF size, Node *node,
       break;
     }
   });
+
   setAcceptHoverEvents(true);
   inputConnectorsWidget_ = new QGraphicsWidget{this};
   outputConnectorsWidget_ = new QGraphicsWidget{this};
@@ -341,6 +343,14 @@ QVector<Node *> NetworkScene::selectedNodes() const {
 void NetworkScene::nodeAdded(Node *node) {
   qDebug() << "NetworkView::nodeAddedPrivate(" << node << ")";
   createNodeVisual(node);
+  int n = node->inputCount();
+  for (int i = 0; i < n; ++i) {
+	  inputConnectorAdded(node, node->input(i));
+  }
+  n = node->outputCount();
+  for (int i = 0; i < n; ++i) {
+	  outputConnectorAdded(node, node->output(i));
+  }
 }
 
 void NetworkScene::nodeRemoved(Node *node) {
@@ -349,12 +359,6 @@ void NetworkScene::nodeRemoved(Node *node) {
   // connections will be removed before
   nodes_.erase(node);
 }
-
-/*
-void NetworkScene::nodeDeleteRequested(const Node* node) {
-  auto i = index.row();
-  model_->removeNode(i);
-}*/
 
 void NetworkScene::inputConnectorAdded(node::Node *node, node::Input *input) {
   nodes_[node]->inputConnectorAdded(input);
@@ -368,6 +372,7 @@ void NetworkScene::outputConnectorAdded(node::Node *node,
 void NetworkScene::inputConnectorRemoved(node::Node *node, node::Input *input) {
   nodes_[node]->inputConnectorRemoved(input);
 }
+
 void NetworkScene::outputConnectorRemoved(node::Node *node,
                                           node::Output *output) {
   nodes_[node]->outputConnectorRemoved(output);

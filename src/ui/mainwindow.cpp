@@ -3,6 +3,7 @@
 #include "ui/connectdialog.h"
 #include "ui/nodes/nodeparams.h"
 #include "util/log.h"
+#include "img/outputnode.h"
 #include <QAction>
 #include <QDockWidget>
 #include <QMenu>
@@ -23,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput->show();
 
   // root graph node
-  root_ = std::make_unique<node::Network>("root", nullptr);
+  root_ = std::make_unique<img::ImgNetwork>(nullptr, "root", *renderTargetCache_);
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -39,22 +40,31 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   auto buttonScaleDown = new QPushButton("-");
   connect(buttonScaleDown, SIGNAL(released()), this, SLOT(scaleDown()));
 
-  auto buttonAddNode = new QPushButton("Add node");
+  auto buttonAddNode = new QPushButton("Add Node");
   connect(buttonAddNode, SIGNAL(released()), this, SLOT(addNode()));
 
   // actions
   deleteNodeAct =
-      new QAction(qtAwesome()->icon(fa::trasho), "Delete node", this);
+      new QAction(qtAwesome()->icon(fa::trasho), "Delete Node", this);
   connect(deleteNodeAct, SIGNAL(triggered()), this,
           SLOT(deleteSelectedNodes()));
-  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add node", this);
+
+  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add Node", this);
+  connect(addNodeAct, &QAction::triggered, this, &MainWindow::addNode);
+
+  addOutputNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add Output Node", this);
+  connect(addOutputNodeAct, &QAction::triggered, this, &MainWindow::addOutputNode);
+
   connectToServerAct =
-      new QAction{qtAwesome()->icon(fa::wifi), "Connect to server", this};
+      new QAction{qtAwesome()->icon(fa::wifi), "Connect to Server", this};
+
   connect(connectToServerAct, SIGNAL(triggered()), this,
           SLOT(connectToServer()));
+
   exitAct = new QAction{"Exit"};
   connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
-  showRenderOutputAct = new QAction{"Show render output"};
+
+  showRenderOutputAct = new QAction{"Show Render Output"};
   connect(showRenderOutputAct, SIGNAL(triggered()), renderOutput, SLOT(show()));
 
   // menu
@@ -76,13 +86,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   // dock panels
   setDockNestingEnabled(true);
 
-  auto networkViewDockWidget = new QDockWidget{tr("Network view")};
+  auto networkViewDockWidget = new QDockWidget{tr("Network View")};
   auto networkViewPanel = new QWidget;
   networkViewPanel->setLayout(layout);
   networkViewDockWidget->setWidget(networkViewPanel);
   addDockWidget(Qt::RightDockWidgetArea, networkViewDockWidget);
 
-  auto paramDockWidget = new QDockWidget{tr("Network view")};
+  auto paramDockWidget = new QDockWidget{tr("Network View")};
   paramPanel_ = new QWidget;
   // paramPanel->setLayout(layout);
   paramDockWidget->setWidget(paramPanel_);
@@ -95,7 +105,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 void MainWindow::exit() {
   renderOutput->close();
-  close();
+  close(); 
 }
 
 void MainWindow::connectToServer() {
@@ -138,6 +148,7 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
   } else {
     QMenu contextMenu;
     contextMenu.addAction(addNodeAct);
+	contextMenu.addAction(addOutputNodeAct);
     contextMenu.exec(networkView->mapToGlobal(pos));
   }
 }
@@ -161,28 +172,17 @@ void MainWindow::scaleDown() {
   // imageView->setScale(imageView->scale() * 0.5);
 }
 
+void MainWindow::addOutputNode() {
+	auto n = img::OutputNode::make(*root_, "output");
+}
+
 void MainWindow::addNode() {
-  auto nodeA = img::ScreenSpaceNode::make(root_.get(), "nodeA");
-  // auto nodeA_UI = ui::nodes::NodeParams::make(nodeA, *networkView);
-  auto nodeB = img::ScreenSpaceNode::make(root_.get(), "nodeB");
-  // auto nodeB_UI = ui::nodes::NodeParams::make(nodeB, *networkView);
-
-  nodeA->createParameter("testParam", "Test parameter", 0.0);
-  nodeA->createParameter("testParam2", "Test parameter2", 0.0);
-
-  nodeA->createInput("input0");
-  nodeA->createInput("input1");
-  nodeA->createInput("input2");
-  nodeA->createOutput("output0");
-
-  nodeB->createInput("input0");
-  nodeB->createInput("input1");
-  nodeB->createOutput("output0");
-  nodeB->createOutput("output1");
-
-  // nodeA_UI->rebuildParamUI(paramPanel_);
-  // networkView->nodeAdded(nodeA);
-  // networkView->nodeAdded(nodeB);
+	auto n = img::ImgNode::make(*root_, "screen");
+	n->createParameter("testParam", "Test Parameter", 0.0);
+	n->createParameter("testParam2", "Test Parameter 2", 0.0);
+	n->createInput("input0");
+	n->createInput("input1");
+	n->createOutput("output0");
 }
 
 MainWindow::~MainWindow() {}

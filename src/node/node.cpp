@@ -393,14 +393,7 @@ void Node::removeObserver(Observer *obs) {
   }
 }
 
-Input *Node::input(int id) {
-  for (auto &&i : inputs_) {
-    if (i->id == id) {
-      return i.get();
-    }
-  }
-  return nullptr;
-}
+Input *Node::input(int index) { return inputs_[index].get(); }
 
 Input *Node::input(util::StringRef name) {
   for (auto &&i : inputs_) {
@@ -411,14 +404,7 @@ Input *Node::input(util::StringRef name) {
   return nullptr;
 }
 
-Output *Node::output(int id) {
-  for (auto &&o : outputs_) {
-    if (o->id == id) {
-      return o.get();
-    }
-  }
-  return nullptr;
-}
+Output *Node::output(int index) { return outputs_[index].get(); }
 
 Output *Node::output(util::StringRef name) {
   for (auto &&o : outputs_) {
@@ -429,11 +415,7 @@ Output *Node::output(util::StringRef name) {
   return nullptr;
 }
 
-util::StringRef Node::inputName(Input* input) {
-	return input->name;
-}
-util::StringRef Node::outputName(Output* output) {
-	return output->name;
-}
+util::StringRef Node::inputName(Input *input) { return input->name; }
+util::StringRef Node::outputName(Output *output) { return output->name; }
 
 } // namespace node
