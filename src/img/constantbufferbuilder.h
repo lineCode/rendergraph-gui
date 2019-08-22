@@ -18,7 +18,7 @@ public:
   }
   // TODO vectors and matrices
 
-  gfx::Buffer create(gfx::GraphicsBackend *gfx);
+  gfx::Buffer create(gfx::GraphicsBackend &gfx);
 
 private:
   std::vector<char> buf_;
@@ -39,7 +39,7 @@ inline size_t ConstantBufferBuilder::push(int val) {
   return off;
 }
 
-inline gfx::Buffer ConstantBufferBuilder::create(gfx::GraphicsBackend *gfx) {
+inline gfx::Buffer ConstantBufferBuilder::create(gfx::GraphicsBackend &gfx) {
   return gfx::Buffer{gfx, buf_.data(), buf_.size()};
 }
 

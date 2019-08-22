@@ -31,7 +31,8 @@ struct SDeclFun {
         std::string name;
 
 };
-
+
+
 
 struct ShaderGeneratorPrivate {
 

@@ -17,7 +17,7 @@ public:
 
   /// Returns the GPU image associated with this image. If no GPU resource has
   /// been created for this image, then it will create one on the fly.
-  gfx::Image &getGPUImage(gfx::GraphicsBackend *gfx);
+  gfx::Image &getGPUImage(gfx::GraphicsBackend &gfx);
 
 private:
   gfx::ImageDesc desc_;

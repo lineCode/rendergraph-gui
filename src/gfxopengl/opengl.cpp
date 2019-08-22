@@ -139,8 +139,8 @@ gl::GLuint createSampler(const gfx::SamplerDesc &desc) {
                         textureAddressModeToGLenum(desc.addrV));
   gl::SamplerParameteri(sampler_obj, gl::TEXTURE_WRAP_T,
                         textureAddressModeToGLenum(desc.addrW));
-  float borderColor[4] = {desc.borderColor.r, desc.borderColor.g,
-                          desc.borderColor.b, desc.borderColor.a};
+  float borderColor[4] = {(float)desc.borderColor.r, (float)desc.borderColor.g,
+						  (float)desc.borderColor.b, (float)desc.borderColor.a};
   gl::SamplerParameterfv(sampler_obj, gl::TEXTURE_BORDER_COLOR, borderColor);
   return sampler_obj;
 }
@@ -534,7 +534,7 @@ void OpenGLGraphicsBackend::clearRenderTarget(gfx::RenderTargetView view,
     throw std::logic_error{"unimplemented"};
   } else {
     gl::GLuint texObj = image->obj;
-    float color[4] = {clearColor.r, clearColor.g, clearColor.b, clearColor.a};
+    float color[4] = {(float)clearColor.r, (float)clearColor.g, (float)clearColor.b, (float)clearColor.a};
     gl::ClearTexImage(texObj, 0, gl::RGBA, gl::FLOAT, color);
   }
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "util/jsonreader.h"
+#include "util/jsonwriter.h"
 #include "util/stringref.h"
 #include <functional>
 #include <map>
@@ -13,34 +15,34 @@ class Observer;
 class Network;
 class Output;
 class Input;
+class Blueprint;
 
 class Input {
-	friend class Node;
+  friend class Node;
 
-	using Ptr = std::unique_ptr<Input>;
+  using Ptr = std::unique_ptr<Input>;
 
-	int id = 0;
-	std::string name = "";
+  int id = 0;
+  std::string name = "";
 
-	bool showConnector = false;
+  bool showConnector = false;
 
-	std::string sourcePath = "";
-	std::string sourceOutputName = "";
+  std::string sourcePath = "";
+  std::string sourceOutputName = "";
 
-	Node *source = nullptr;
-	Output *output = nullptr;
+  Node *source = nullptr;
+  Output *output = nullptr;
 };
 
 class Output {
-	friend class Node;
+  friend class Node;
 
-	using Ptr = std::unique_ptr<Output>;
+  using Ptr = std::unique_ptr<Output>;
 
-	int id = 0;
-	std::string name;
-	std::vector<Node *> dependents;
+  int id = 0;
+  std::string name;
+  std::vector<Node *> dependents;
 };
-
 
 enum class EventType {
   /// A child node has been added.
@@ -91,18 +93,18 @@ struct EventData {
     struct {
       Output *output;
     } outputRemoved;
-	struct {
-		Node* source;
-		Output* output;
-		Node* dest;
-		Input* input;
-	} connectionAdded;
-	struct {
-		Node* source;
-		Output* output;
-		Node* dest;
-		Input* input;
-	} connectionRemoved;
+    struct {
+      Node *source;
+      Output *output;
+      Node *dest;
+      Input *input;
+    } connectionAdded;
+    struct {
+      Node *source;
+      Output *output;
+      Node *dest;
+      Input *input;
+    } connectionRemoved;
   } u;
 };
 
@@ -111,35 +113,6 @@ using EventHandler = void(const EventData &);
 using ParamMap = std::map<std::string, Param *>;
 using InputMap = std::map<std::string, Input *>;
 using OutputMap = std::map<std::string, Output *>;
-
-
-/*
-/// The output of a node that shows up as a connector in the node graph.
-class Output {
-  friend class Node;
-
-public:
-  using Ptr = std::unique_ptr<Output>;
-
-  Output(int id, std::string name) : id_{id}, name_{name} {}
-  ~Output() {}
-
-  int id() const { return id_; }
-  util::StringRef name() const { return name_; }
-
-  void addDependent(Node *node) { dependents_.push_back(node); }
-
-  void removeDependent(Node *node) {
-    auto it = std::remove(dependents_.begin(), dependents_.end(), node);
-    dependents_.erase(it, dependents_.end());
-  }
-
-  static Ptr make(int id, std::string name) {
-    return std::make_unique<Output>(id, std::move(name));
-  }
-
-private:
-};*/
 
 /// Parameters are displayed in the parameter panel.
 class Param {
@@ -223,13 +196,14 @@ class Node {
 public:
   using Ptr = std::unique_ptr<Node>;
 
-  Node(Network *parent);
-  Node(std::string name, Network *parent);
+  // Node(Network *parent);
+  Node(node::Network *parent, std::string name, node::Blueprint& blueprint);
   virtual ~Node();
 
   // Name
   util::StringRef name() const;
   void setName(std::string name);
+  int uniqueId();
 
   /// Marks this node as dirty.
   void markDirty();
@@ -243,14 +217,14 @@ public:
 
   Input *createInput(std::string name);
   void deleteInput(Input *input);
-  void connectInput(Input *input, Node* source, Output* output);
+  void connectInput(Input *input, Node *source, Output *output);
   void connectInput(Input *input, std::string node, std::string output);
-  bool resolveInput(Input* input);
-  void disconnectInput(Input* input);
-  int referenceCount(Node* source, Output* output);
+  bool resolveInput(Input *input);
+  void disconnectInput(Input *input);
+  int referenceCount(Node *source, Output *output);
   Output *createOutput(std::string name);
   void deleteOutput(Output *output);
-  void disconnectOutput(Output* output);
+  void disconnectOutput(Output *output);
   Param *createParameter(std::string name, std::string description,
                          double initValue = 0.0);
   void deleteParameter(Param *p);
@@ -262,10 +236,26 @@ public:
   int outputCount() const { return (int)outputs_.size(); }
   Output *output(int index);
   Output *output(util::StringRef name);
-  util::StringRef inputName(Input* input);
-  util::StringRef outputName(Output* output);
+  util::StringRef inputName(Input *input);
+  util::StringRef outputName(Output *output);
+  int inputUniqueId(Input *input);
+  int outputUniqueId(Output *output);
+  bool isInputConnected(Input *input);
+  bool inputSource(Input *input, Node *&node, Output *&output);
+
+  // load/save
+  void load(util::JsonReader &reader, int baseId);
+  void save(util::JsonWriter &writer);
+
+  static void registerBlueprint(std::string typeName, Node* (*constructor)(Network&, std::string, Blueprint& blueprint));
 
 protected:
+  Input *createInputInternal(std::string name, int uid);
+  Output *createOutputInternal(std::string name, int uid);
+
+  virtual void loadInternal(util::StringRef key, util::JsonReader &reader);
+  virtual void saveInternal(util::JsonWriter &writer);
+
   virtual void onChildAdded(Node *node);
   virtual void onChildRemoved(Node *node);
   virtual void onReferenceAdded(Node *to);
@@ -277,19 +267,19 @@ protected:
   virtual void onOutputRemoved(Output *output);
   virtual void onConnectOutput(Output *output, Node *targetNode);
   virtual void onDisconnectOutput(Output *output, Node *targetNode);
-  virtual void onConnectionAdded(Node* source, Output* output, Node *dest, Input* input);
-  virtual void onConnectionRemoved(Node* source, Output* output, Node *dest, Input* input);
-  
-  /// Notifies all observers about an event.
+  virtual void onConnectionAdded(Node *source, Output *output, Node *dest,
+                                 Input *input);
+  virtual void onConnectionRemoved(Node *source, Output *output, Node *dest,
+                                   Input *input);
   void notify(const EventData &e);
 
 private:
-	void addDependentNode(Output* output, Node* destination, Input* input);
-	void removeDependentNode(Output* output, Node* destination, Input* input);
-	void doDisconnectInput(Input* input, bool removeReferenceFromOutput);
-	std::string makeUniqueInputName(std::string s, int id);
-	std::string makeUniqueOutputName(std::string s, int id);
-	
+  void addDependentNode(Output *output, Node *destination, Input *input);
+  void removeDependentNode(Output *output, Node *destination, Input *input);
+  void doDisconnectInput(Input *input, bool removeReferenceFromOutput);
+  std::string makeUniqueInputName(std::string s, int id);
+  std::string makeUniqueOutputName(std::string s, int id);
+
   void addObserver(Observer *obs);
   void removeObserver(Observer *obs);
 
@@ -298,6 +288,7 @@ private:
 
   bool dirty_ = true;
   std::string name_;
+  Blueprint& blueprint_;
   int outputIdCounter_ = 0;
   int inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.
@@ -308,12 +299,16 @@ private:
   std::vector<Param::Ptr> params_;
   std::vector<std::unique_ptr<Input>> inputs_;
   std::vector<std::unique_ptr<Output>> outputs_;
-  
+
   // observers
   int notifying_ = 0;
   std::vector<Observer *> observers_;
   std::vector<Observer *> observersToAdd_;
-  std::vector<Observer *> observersToRemove_;
+  std::vector<Observer *> observersToRemove_; 
+
+  struct Registration;
+  static std::vector<std::unique_ptr<Blueprint>> blueprints_;
 };
 
-} // namespace render
+
+} // namespace node

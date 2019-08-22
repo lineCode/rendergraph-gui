@@ -1,16 +1,11 @@
-#include "img/screenspacenode.h"
+#include "img/imgshadernode.h"
 #include "fmt/format.h"
 #include "gfx/pipeline.h"
 #include "gfx/signature.h"
-#include "img/constantbufferbuilder.h"
-#include "img/image.h"
-#include "img/screenspacenetwork.h"
-#include "node/node.h"
 #include "util/log.h"
-#include <map>
-#include <regex>
+#include "img/constantbufferbuilder.h"
 
-using namespace node;
+#include <regex>
 
 namespace img {
 
@@ -51,51 +46,13 @@ static const gfx::VertexLayoutElement POSITION_LAYOUT_ELEMENTS[] = {
 static const gfx::VertexLayout POSITION_LAYOUT = {
     util::makeArrayRef(POSITION_LAYOUT_ELEMENTS), 16};
 
-RenderTarget *ImgNode::createRenderTarget(const gfx::ImageDesc &desc) {
-
-  return nullptr;
-}
-
-void ImgNode::setRenderTargetDesc(const gfx::ImageDesc &desc) {}
-
-void ImgNode::deleteRenderTarget(RenderTarget *output) {}
-
-void ImgNode::assignOutputTarget(util::StringRef outputName,
-                                 RenderTarget *target) {
-
-  // issue: some outputs are assigned render targets, but others are assigned
-  // images
-  // -> assign output after execution, clear assignments when node is dirtied
-
-  auto out = output(outputName);
-  if (!out) {
-    util::log("WARNING ImgNode[{}]::assignOutputTarget: output `{}` "
-              "does not exist",
-              name().to_string(), outputName.to_string());
-    return;
-  }
-  for (auto &&entry : outputMap_) {
-    if (entry.output == out) {
-      // reassign output
-      entry.target = target;
-      // TODO send event
-      return;
-    }
-  }
-  // output not assigned
-  OutputTarget entry;
-  entry.output = out;
-  entry.target = target;
-  // TODO send event
-}
-
-void ImgNode::setFragCode(std::string code) {
+void ImgShaderNode::setFragCode(std::string code) {
   fragCode_ = std::move(code);
   shaderDirty_ = true;
   compilationSuccess_ = false;
 }
 
-bool ImgNode::compile(gfx::GraphicsBackend *gfx) {
+bool ImgShaderNode::compile(gfx::GraphicsBackend &gfx) {
 
   if (shaderDirty_ == false) {
     // no need to recompile the pipeline.
@@ -161,7 +118,7 @@ bool ImgNode::compile(gfx::GraphicsBackend *gfx) {
   return true;
 }
 
-void ImgNode::execute(gfx::GraphicsBackend *gfx,
+void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
                       const ScreenSpaceContext &ctx) {
   if (shaderDirty_) {
     compile(gfx);
@@ -173,7 +130,7 @@ void ImgNode::execute(gfx::GraphicsBackend *gfx,
   b.push(0.0f);
   b.push(0.2f);
   b.push(0.4f);
-  auto constantBuffer = b.create(0);
+  auto constantBuffer = b.create(gfx);
   auto constantBufferView =
       gfx::ConstantBufferView{constantBuffer, 0, b.size()};
 
@@ -200,20 +157,20 @@ void ImgNode::execute(gfx::GraphicsBackend *gfx,
   params.vertexCount = 6;
   params.firstInstance = 0;
   params.instanceCount = 1;
-  gfx->draw(pipeline_, framebuffer_, args, params);
+  gfx.draw(pipeline_, framebuffer_, args, params);
 
   // mark our outputs as dirty so that other passes that depend on them are
   // updated.
   // renderTargets_[0]->markDirty();
 }
 
-ImgNode::ImgNode(ImgNetwork &parent, std::string name)
-    : Node{std::move(name), &parent}, parent_{parent}, fragCode_{
-                                                           DEFAULT_FRAG_CODE} {}
-
-ImgNode *ImgNode::make(ImgNetwork &parent, std::string name = "pass") {
-  return static_cast<ImgNode *>(
-      parent.addChild(std::make_unique<ImgNode>(parent, std::move(name))));
+node::Node *ImgShaderNode::make(node::Network &parent, std::string name, node::Blueprint& blueprint) {
+	parent.addChild(std::make_unique<ImgShaderNode>(parent, std::move(name), blueprint));
 }
+
+
+ImgShaderNode::ImgShaderNode(node::Network &parent, std::string name, node::Blueprint& blueprint)
+    : ImgNode{parent, std::move(name), blueprint},
+      fragCode_{DEFAULT_FRAG_CODE} {}
 
 } // namespace img

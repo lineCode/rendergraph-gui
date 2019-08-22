@@ -1,17 +1,21 @@
 #include "ui/mainwindow.h"
 #include "QtAwesome/QtAwesome.h"
+#include "img/imgshadernode.h"
+#include "img/outputnode.h"
 #include "ui/connectdialog.h"
 #include "ui/nodes/nodeparams.h"
 #include "util/log.h"
-#include "img/outputnode.h"
+#include "util/jsonwriter.h"
 #include <QAction>
 #include <QDockWidget>
+#include <QFileDialog>
 #include <QMenu>
 #include <QMenuBar>
 #include <QOpenGLContext>
 #include <QPushButton>
 #include <QStatusBar>
 #include <QVBoxLayout>
+#include <fstream>
 
 using node::Input;
 using node::Node;
@@ -24,7 +28,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   renderOutput->show();
 
   // root graph node
-  root_ = std::make_unique<img::ImgNetwork>(nullptr, "root", *renderTargetCache_);
+  root_ =
+      std::make_unique<img::ImgNetwork>(nullptr, "root", *renderTargetCache_);
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -52,14 +57,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add Node", this);
   connect(addNodeAct, &QAction::triggered, this, &MainWindow::addNode);
 
-  addOutputNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add Output Node", this);
-  connect(addOutputNodeAct, &QAction::triggered, this, &MainWindow::addOutputNode);
+  addOutputNodeAct =
+      new QAction(qtAwesome()->icon(fa::plus), "Add Output Node", this);
+  connect(addOutputNodeAct, &QAction::triggered, this,
+          &MainWindow::addOutputNode);
 
   connectToServerAct =
       new QAction{qtAwesome()->icon(fa::wifi), "Connect to Server", this};
+  connect(connectToServerAct, &QAction::triggered, this,
+          &MainWindow::connectToServer);
 
-  connect(connectToServerAct, SIGNAL(triggered()), this,
-          SLOT(connectToServer()));
+  saveAct = new QAction{qtAwesome()->icon(fa::save), "Save Network...", this};
+  connect(saveAct, &QAction::triggered, this, &MainWindow::saveNetwork);
 
   exitAct = new QAction{"Exit"};
   connect(exitAct, SIGNAL(triggered()), this, SLOT(exit()));
@@ -70,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   // menu
   auto fileMenu = menuBar()->addMenu("&File");
   fileMenu->addAction(connectToServerAct);
+  fileMenu->addAction(saveAct);
   fileMenu->addSeparator();
   fileMenu->addAction(exitAct);
   auto renderMenu = menuBar()->addMenu("&Render");
@@ -105,7 +115,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 void MainWindow::exit() {
   renderOutput->close();
-  close(); 
+  close();
+}
+
+void MainWindow::saveNetwork() {
+  QString fileName = QFileDialog::getSaveFileName(
+      this, tr("Save Network"), QString(), tr("Rendergraph network (*.rnet)"));
+  std::ofstream fileOut{ fileName.toStdString(), std::ios::trunc | std::ios::binary };
+  util::JsonWriter writer{ fileOut };
+  root_->save(writer);
 }
 
 void MainWindow::connectToServer() {
@@ -148,7 +166,7 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
   } else {
     QMenu contextMenu;
     contextMenu.addAction(addNodeAct);
-	contextMenu.addAction(addOutputNodeAct);
+    contextMenu.addAction(addOutputNodeAct);
     contextMenu.exec(networkView->mapToGlobal(pos));
   }
 }
@@ -173,16 +191,16 @@ void MainWindow::scaleDown() {
 }
 
 void MainWindow::addOutputNode() {
-	auto n = img::OutputNode::make(*root_, "output");
+  auto n = img::ImgOutput::make(*root_, "output");
 }
 
 void MainWindow::addNode() {
-	auto n = img::ImgNode::make(*root_, "screen");
-	n->createParameter("testParam", "Test Parameter", 0.0);
-	n->createParameter("testParam2", "Test Parameter 2", 0.0);
-	n->createInput("input0");
-	n->createInput("input1");
-	n->createOutput("output0");
+  auto n = img::ImgShaderNode::make(*root_, "screen");
+  n->createParameter("testParam", "Test Parameter", 0.0);
+  n->createParameter("testParam2", "Test Parameter 2", 0.0);
+  n->createInput("input0");
+  n->createInput("input1");
+  n->createOutput("output0");
 }
 
 MainWindow::~MainWindow() {}

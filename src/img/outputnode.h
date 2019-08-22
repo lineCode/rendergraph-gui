@@ -1,21 +1,21 @@
 #pragma once
-#include "screenspacenetwork.h"
+#include "img/imgnetwork.h"
+#include "img/imgnode.h"
 
 namespace img {
-class OutputNode : public node::Node {
+class ImgOutput : public ImgNode {
 public:
-  OutputNode(ImgNetwork &parent, std::string name)
-      : Node{std::move(name), &parent}, parent_{parent} {
+  ImgOutput(node::Network &parent, std::string name, node::Blueprint& blueprint)
+      : ImgNode{ parent, std::move(name), blueprint} {
     result_ = createInput("Result");
   }
 
-  void execute(gfx::GraphicsBackend *gfx);
+  void execute(gfx::GraphicsBackend &gfx,
+	  const ScreenSpaceContext &ctx) override;
 
-  static OutputNode *OutputNode::make(ImgNetwork &parent, std::string name);
+  static node::Node *make(node::Network &parent, std::string name, node::Blueprint& blueprint);
 
 private:
-  // The image to display
-  ImgNetwork &parent_;
   node::Input *result_;
 };
 } // namespace img

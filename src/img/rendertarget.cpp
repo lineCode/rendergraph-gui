@@ -1,5 +1,5 @@
 #include "img/rendertarget.h"
-#include "img/screenspacenode.h"
+#include "img/imgnode.h"
 
 namespace img {
 
@@ -23,15 +23,14 @@ public:
   BackingImage *image;
 };
 
-RenderTargetCache::RenderTargetCache(gfx::GraphicsBackend *backend)
+RenderTargetCache::RenderTargetCache(gfx::GraphicsBackend &backend)
     : backend_{backend} {}
 
-RenderTargetCache::~RenderTargetCache()
-{}
+RenderTargetCache::~RenderTargetCache() {}
 
 RenderTarget *
 RenderTargetCache::createRenderTarget(const gfx::ImageDesc &desc) {
-	return nullptr;
+  return nullptr;
 }
 
 void RenderTargetCache::setRenderTargetDesc(RenderTarget *renderTarget,
@@ -44,6 +43,11 @@ void RenderTargetCache::setRenderTargetDesc(RenderTarget *renderTarget,
   }
   renderTarget->desc = desc;
   renderTarget->image = nullptr;
+}
+
+const gfx::ImageDesc &
+RenderTargetCache::getRenderTargetDesc(RenderTarget *renderTarget) {
+  return renderTarget->desc;
 }
 
 gfx::ImageHandle RenderTargetCache::getImage(RenderTarget *renderTarget) {
@@ -70,13 +74,17 @@ void RenderTargetCache::assignImage(RenderTarget *rt) {
     }
   }
   // allocate a new image
-  auto handle = backend_->createImage(rt->desc);
+  auto handle = backend_.createImage(rt->desc);
   auto img = std::make_unique<BackingImage>(rt->desc, handle);
   rt->image = img.get();
   images_.push_back(std::move(img));
 }
 
-RenderTargetCache::Ptr RenderTargetCache::make(gfx::GraphicsBackend *backend) {
+void RenderTargetCache::deleteRenderTarget(RenderTarget* renderTarget) {
+	// TODO
+}
+
+RenderTargetCache::Ptr RenderTargetCache::make(gfx::GraphicsBackend &backend) {
   return std::make_unique<RenderTargetCache>(backend);
 }
 

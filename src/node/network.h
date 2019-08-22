@@ -11,8 +11,8 @@ class Network : public Node {
 public:
   using Ptr = std::unique_ptr<Network>;
 
-  Network(Network *parent) : Node{parent} {}
-  Network(std::string name, Network *parent) : Node{name, parent} {}
+  //  Network(Network *parent) : Node{parent} {}
+  Network(node::Network &parent, std::string name, node::Blueprint& blueprint) : Node{&parent, name, blueprint} {}
   virtual ~Network() {}
 
   Node *addChild(Node::Ptr ptr);
@@ -36,33 +36,20 @@ public:
   Node *findChildByName(util::StringRef name);
 
   void addConnection(util::StringRef from, util::StringRef fromOutput,
-                     util::StringRef to, util::StringRef toInput) 
-  {
-    auto toNode = findChildByName(to);
-    if (!toNode)
-      return;
-    auto input = toNode->input(toInput);
-    if (!input)
-      return;
-	toNode->connectInput(input, from.to_string(), fromOutput.to_string());
-  }
+                     util::StringRef to, util::StringRef toInput);
 
-  void addConnection(Node *source, Output* output, Node *destination,
-                     Input* input) 
-  {
-	  destination->connectInput(input, source, output);
-  }
+  void addConnection(Node *source, Output *output, Node *destination,
+                     Input *input);
 
-  static Ptr make(Network *parent, std::string name) {
-    return std::make_unique<Network>(std::move(name), parent);
-  }
+protected:
+  void loadInternal(util::StringRef key, util::JsonReader &reader) override;
+  void saveInternal(util::JsonWriter &writer) override;
 
 private:
-  
-	void makeNameUnique(std::string& name);
+  void makeNameUnique(std::string &name);
 
   std::vector<Node::Ptr> children_;
   int uniqueNameCounter_ = 0;
 };
 
-} // namespace render
+} // namespace node

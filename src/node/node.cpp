@@ -5,10 +5,47 @@
 #include <algorithm>
 
 namespace node {
+static int uniqueNodeIdCounter = 0;
 
-Node::Node(Network *parent) : parent_{parent} {}
+static int getUniqueNodeIdCounter() { return uniqueNodeIdCounter++; }
 
-Node::Node(std::string name, Network *parent) : name_{name}, parent_{parent} {}
+static void setUniqueNodeIdCounter(int value) { uniqueNodeIdCounter = value; }
+
+//------------------------------------------------------------------------------------
+class Blueprint {
+  friend class Node;
+
+public:
+  Blueprint(std::string name,
+            Node *(*constructor)(Network &, std::string, Blueprint &))
+      : name_{name}, constructor_{constructor} {}
+
+private:
+  std::string name_;
+  Node *(*constructor_)(Network &, std::string, Blueprint &);
+};
+
+std::vector<std::unique_ptr<Blueprint>> Node::blueprints_;
+
+void Node::registerBlueprint(std::string name,
+                             Node *(*constructor)(Network &, std::string,
+                                                  Blueprint &blueprint)) {
+  // check for duplicate name
+  for (auto &&bp : blueprints_) {
+    if (bp->name_ == name) {
+      util::log("WARNING Node::registerBlueprint: duplicate blueprints with "
+                "name `{}`",
+                name);
+      return;
+    }
+  }
+  blueprints_.push_back(std::make_unique<Blueprint>(name, constructor));
+}
+
+//------------------------------------------------------------------------------------
+Node::Node(node::Network *parent, std::string name, node::Blueprint& blueprint) : name_{ name }, parent_{ parent }, blueprint_{ blueprint } {
+  id_ = getUniqueNodeIdCounter();
+}
 
 Node::~Node() {
   // disconnect all inputs
@@ -35,6 +72,8 @@ util::StringRef Node::name() const {
 }
 
 void Node::setName(std::string name) { name_ = std::move(name); }
+
+int Node::uniqueId() { return id_; }
 
 void Node::markDirty() {
   dirty_ = true;
@@ -70,9 +109,13 @@ std::string Node::makeUniqueOutputName(std::string name, int id) {
 
 Input *Node::createInput(std::string name) {
   int inputId = getInputId();
+  return createInputInternal(name, inputId);
+}
+
+Input *Node::createInputInternal(std::string name, int uid) {
   Input i;
-  i.id = inputId;
-  i.name = makeUniqueInputName(name, inputId);
+  i.id = uid;
+  i.name = makeUniqueInputName(name, uid);
   i.showConnector = true;
   auto ptr = pushUniquePtr(inputs_, std::make_unique<Input>(std::move(i)));
   onInputAdded(ptr);
@@ -178,6 +221,12 @@ void Node::removeDependentNode(Output *output, Node *destination,
 }
 
 Output *Node::createOutput(std::string name) {
+  int outputId = getOutputId();
+  return createOutputInternal(std::move(name), outputId);
+}
+
+Output *Node::createOutputInternal(std::string name, int uid) {
+
   int outputId = getOutputId();
   Output out;
   out.id = outputId;
@@ -417,5 +466,116 @@ Output *Node::output(util::StringRef name) {
 
 util::StringRef Node::inputName(Input *input) { return input->name; }
 util::StringRef Node::outputName(Output *output) { return output->name; }
+
+int Node::inputUniqueId(Input *input) { return input->id; }
+int Node::outputUniqueId(Output *output) { return output->id; }
+
+bool Node::isInputConnected(Input *input) { return input->output != nullptr; }
+
+bool Node::inputSource(Input *input, Node *&node, Output *&output) {
+  if (!isInputConnected(input))
+    return false;
+  node = input->source;
+  output = input->output;
+  return true;
+}
+
+// Serialization
+// ===================================================================
+
+void Node::load(util::JsonReader &r, int baseId) {
+  r.beginObject();
+  while (r.hasNext()) {
+    auto k = r.nextName();
+    if (k == "name") {
+      setName(r.nextString());
+    } else if (k == "id") {
+      int id = (int)r.nextInt();
+      id_ = baseId + id;
+    } else if (k == "inputs") {
+      r.beginArray();
+      while (r.hasNext()) {
+        std::string name;
+        int id;
+        r.beginObject();
+        while (r.hasNext()) {
+          auto k = r.nextName();
+          if (k == "name") {
+            name = r.nextString();
+          } else if (k == "id") {
+            id = (int)r.nextInt();
+          } else {
+            util::log("WARNING Node::load: unknown attribute {}", k);
+            r.skipValue();
+          }
+        }
+        r.endObject();
+        createInputInternal(name, id);
+      }
+      r.endArray();
+    } else if (k == "outputs") {
+      r.beginArray();
+      while (r.hasNext()) {
+        std::string name;
+        int id;
+        r.beginObject();
+        while (r.hasNext()) {
+          auto k = r.nextName();
+          if (k == "name") {
+            name = r.nextString();
+          } else if (k == "id") {
+            id = (int)r.nextInt();
+          } else {
+            util::log("WARNING Node::load: unknown attribute {}", k);
+            r.skipValue();
+          }
+        }
+        r.endObject();
+        createOutputInternal(name, id);
+      }
+      r.endArray();
+    } else {
+      // loadInternal(nextName, r)
+      util::log("WARNING Node::load: unknown attribute {}", k);
+      r.skipValue();
+    }
+  }
+  r.endObject();
+}
+
+void Node::save(util::JsonWriter &w) {
+  w.beginObject();
+  w.name("name");
+  w.value(name());
+  w.name("id");
+  w.value((int64_t)id_);
+  w.name("inputs");
+  w.beginArray();
+  for (auto &&in : inputs_) {
+    w.beginObject();
+    w.name("name");
+    w.value(in->name);
+    w.name("id");
+    w.value((int64_t)in->id);
+    w.endObject();
+  }
+  w.endArray();
+  w.name("outputs");
+  w.beginArray();
+  for (auto &&out : outputs_) {
+    w.beginObject();
+    w.name("name");
+    w.value(out->name);
+    w.name("id");
+    w.value((int64_t)out->id);
+    w.endObject();
+  }
+  w.endArray();
+  saveInternal(w);
+  w.endObject();
+}
+
+void Node::loadInternal(util::StringRef key, util::JsonReader &reader) {}
+void Node::saveInternal(util::JsonWriter &writer) {}
 
 } // namespace node

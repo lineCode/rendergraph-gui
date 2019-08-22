@@ -149,16 +149,16 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct ImageDeleter {
-  void operator()(GraphicsBackend *backend, ImageHandle handle) {
-    backend->deleteImage(handle);
+  void operator()(GraphicsBackend &backend, ImageHandle handle) {
+    backend.deleteImage(handle);
   }
 };
 
 class Image {
 public:
   Image() = default;
-  Image(GraphicsBackend *backend, const ImageDesc &desc)
-      : image{backend, backend->createImage(desc)} {}
+  Image(GraphicsBackend &backend, const ImageDesc &desc)
+      : image{backend, backend.createImage(desc)} {}
 
   RenderTargetView asRenderTargetView() {
     return RenderTargetView{image.get()};
@@ -172,17 +172,17 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct ShaderModuleDeleter {
-  void operator()(GraphicsBackend *backend, ShaderModuleHandle handle) {
-    backend->deleteShaderModule(handle);
+  void operator()(GraphicsBackend &backend, ShaderModuleHandle handle) {
+    backend.deleteShaderModule(handle);
   }
 };
 
 class ShaderModule {
 public:
   ShaderModule() = default;
-  ShaderModule(GraphicsBackend *backend, util::StringRef source,
+  ShaderModule(GraphicsBackend &backend, util::StringRef source,
                gfx::ShaderStageFlags stage)
-      : shader{backend, backend->createShaderModule(source, stage)} {}
+      : shader{backend, backend.createShaderModule(source, stage)} {}
 
   operator ShaderModuleHandle() { return shader.get(); }
 
@@ -192,16 +192,16 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct GraphicsPipelineDeleter {
-  void operator()(GraphicsBackend *backend, GraphicsPipelineHandle handle) {
-    backend->deleteGraphicsPipeline(handle);
+  void operator()(GraphicsBackend &backend, GraphicsPipelineHandle handle) {
+    backend.deleteGraphicsPipeline(handle);
   }
 };
 
 class GraphicsPipeline {
 public:
   GraphicsPipeline() = default;
-  GraphicsPipeline(GraphicsBackend *backend, gfx::GraphicsPipelineDesc &desc)
-      : pipeline{backend, backend->createGraphicsPipeline(desc)} {}
+  GraphicsPipeline(GraphicsBackend &backend, gfx::GraphicsPipelineDesc &desc)
+      : pipeline{backend, backend.createGraphicsPipeline(desc)} {}
 
   operator GraphicsPipelineHandle() { return pipeline.get(); }
 
@@ -211,16 +211,16 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct FramebufferDeleter {
-  void operator()(GraphicsBackend *backend, FramebufferHandle handle) {
-    backend->deleteFramebuffer(handle);
+  void operator()(GraphicsBackend &backend, FramebufferHandle handle) {
+    backend.deleteFramebuffer(handle);
   }
 };
 
 class Framebuffer {
 public:
   Framebuffer() = default;
-  Framebuffer(GraphicsBackend *backend, const FramebufferDesc &desc)
-      : framebuffer{backend, backend->createFramebuffer(desc)} {}
+  Framebuffer(GraphicsBackend &backend, const FramebufferDesc &desc)
+      : framebuffer{backend, backend.createFramebuffer(desc)} {}
 
   operator FramebufferHandle() { return framebuffer.get(); }
 
@@ -230,16 +230,16 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct RenderPassDeleter {
-  void operator()(GraphicsBackend *backend, RenderPassHandle handle) {
-    backend->deleteRenderPass(handle);
+  void operator()(GraphicsBackend &backend, RenderPassHandle handle) {
+    backend.deleteRenderPass(handle);
   }
 };
 
 class RenderPass {
 public:
   RenderPass() = default;
-  RenderPass(GraphicsBackend *backend, const RenderPassDesc &desc)
-      : renderPass{backend, backend->createRenderPass(desc)} {}
+  RenderPass(GraphicsBackend &backend, const RenderPassDesc &desc)
+      : renderPass{backend, backend.createRenderPass(desc)} {}
 
   operator RenderPassHandle() { return renderPass.get(); }
 
@@ -249,16 +249,16 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct SignatureDeleter {
-  void operator()(GraphicsBackend *backend, SignatureHandle handle) {
-    backend->deleteSignature(handle);
+  void operator()(GraphicsBackend &backend, SignatureHandle handle) {
+    backend.deleteSignature(handle);
   }
 };
 
 class Signature {
 public:
   Signature() = default;
-  Signature(GraphicsBackend *backend, const SignatureDesc &desc)
-      : signature{backend, backend->createSignature(nullptr, desc)} {}
+  Signature(GraphicsBackend &backend, const SignatureDesc &desc)
+      : signature{backend, backend.createSignature(nullptr, desc)} {}
 
   operator SignatureHandle() { return signature.get(); }
 
@@ -268,60 +268,59 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 struct BufferDeleter {
-  void operator()(GraphicsBackend *backend, BufferHandle handle) {
-    backend->deleteBuffer(handle);
+  void operator()(GraphicsBackend &backend, BufferHandle handle) {
+    backend.deleteBuffer(handle);
   }
 };
 
 class Buffer {
 public:
   Buffer() = default;
-  Buffer(GraphicsBackend *backend, const void *data, size_t size)
-      : buffer{backend, backend->createConstantBuffer(data, size)} {}
+  Buffer(GraphicsBackend &backend, const void *data, size_t size)
+      : buffer{backend, backend.createConstantBuffer(data, size)} {}
 
   operator BufferHandle() { return buffer.get(); }
-  
+
 private:
   Handle<BufferHandle, BufferDeleter> buffer;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 struct ArgumentBlockDeleter {
-  void operator()(GraphicsBackend *backend, ArgumentBlockHandle handle) {
-    backend->deleteArgumentBlock(handle);
+  void operator()(GraphicsBackend &backend, ArgumentBlockHandle handle) {
+    backend.deleteArgumentBlock(handle);
   }
 };
 
 class ArgumentBlock {
 public:
   ArgumentBlock() = default;
-  ArgumentBlock(GraphicsBackend *backend, gfx::SignatureHandle signature)
-      : argblock{backend, backend->createArgumentBlock(signature)} {}
+  ArgumentBlock(GraphicsBackend &backend, gfx::SignatureHandle signature)
+      : argblock{backend, backend.createArgumentBlock(signature)} {}
 
   operator ArgumentBlockHandle() { return argblock.get(); }
 
   void setArgumentBlock(int index, ArgumentBlockHandle block) {
-    argblock.backend()->argumentBlockSetArgumentBlock(argblock.get(), index,
-                                                      block);
+    argblock.backend().argumentBlockSetArgumentBlock(argblock.get(), index,
+                                                     block);
   }
   void setShaderResource(int resourceIndex, SampledImageView imgView) {
-    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
-                                                       resourceIndex, imgView);
+    argblock.backend().argumentBlockSetShaderResource(argblock.get(),
+                                                      resourceIndex, imgView);
   }
   void setShaderResource(int resourceIndex, ConstantBufferView buf) {
-    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
-                                                       resourceIndex, buf);
+    argblock.backend().argumentBlockSetShaderResource(argblock.get(),
+                                                      resourceIndex, buf);
   }
   void setShaderResource(int resourceIndex, StorageBufferView buf) {
-    argblock.backend()->argumentBlockSetShaderResource(argblock.get(),
-                                                       resourceIndex, buf);
+    argblock.backend().argumentBlockSetShaderResource(argblock.get(),
+                                                      resourceIndex, buf);
   }
   void setVertexBuffer(int index, VertexBufferView buf) {
-    argblock.backend()->argumentBlockSetVertexBuffer(argblock.get(), index,
-                                                     buf);
+    argblock.backend().argumentBlockSetVertexBuffer(argblock.get(), index, buf);
   }
   void setIndexBuffer(ArgumentBlockHandle argBlock, IndexBufferView buf) {
-    argblock.backend()->argumentBlockSetIndexBuffer(argblock.get(), buf);
+    argblock.backend().argumentBlockSetIndexBuffer(argblock.get(), buf);
   }
 
 private:

@@ -30,7 +30,7 @@ JsonWriter::~JsonWriter() {}
 void JsonWriter::beginObject() { d->beginObject(); }
 void JsonWriter::endObject() { d->endObject(); }
 void JsonWriter::beginArray() { d->beginArray(); }
-void JsonWriter::endArray() { d->beginArray(); }
+void JsonWriter::endArray() { d->endArray(); }
 void JsonWriter::name(util::StringRef name) { d->name(name); }
 void JsonWriter::value(int64_t val) { d->value(val); }
 void JsonWriter::value(double val) { d->value(val); }

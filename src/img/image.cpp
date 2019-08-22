@@ -15,7 +15,7 @@ Image::Image(gfx::Format format, int w, int h) {
 
 Image::Image(const gfx::ImageDesc &desc) {}
 
-gfx::Image &Image::getGPUImage(gfx::GraphicsBackend *gfx) {
+gfx::Image &Image::getGPUImage(gfx::GraphicsBackend &gfx) {
   if (!gpu_) {
     gpu_ = gfx::Image{gfx, desc_};
     // TODO: handle possible errors (out of memory conditions, etc.)

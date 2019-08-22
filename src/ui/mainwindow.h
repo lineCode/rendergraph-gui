@@ -7,8 +7,8 @@
 #include "gfxopengl/opengl.h"
 #include "node/network.h"
 #include "img/rendertarget.h"
-#include "img/screenspacenetwork.h"
-#include "img/screenspacenode.h"
+#include "img/imgnetwork.h"
+#include "img/imgnode.h"
 #include "client/client.h"
 #include <QListView>
 #include <QMainWindow>
@@ -34,12 +34,14 @@ private Q_SLOTS:
 
   void addNode();
   void addOutputNode();
+  void saveNetwork();
 
 private:
   QAction* connectToServerAct;
   QAction *deleteNodeAct;
   QAction* exitAct;
   QAction* showRenderOutputAct;
+  QAction *saveAct;
 
   QAction *addNodeAct;
   QAction *addOutputNodeAct;

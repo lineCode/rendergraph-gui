@@ -2,15 +2,13 @@
 
 namespace img {
 
-void OutputNode::execute(gfx::GraphicsBackend *gfx) {
+void ImgOutput::execute(gfx::GraphicsBackend &gfx, const ScreenSpaceContext &ctx) {
   // resolve image
   // gfx->presentToScreen()
 }
 
-
-OutputNode *OutputNode::make(ImgNetwork &parent, std::string name) {
-	return static_cast<OutputNode *>(parent.addChild(
-		std::make_unique<OutputNode>(parent, std::move(name))));
+node::Node *ImgOutput::make(node::Network &parent, std::string name, node::Blueprint& blueprint) {
+	parent.addChild(std::make_unique<ImgOutput>(parent, std::move(name), blueprint));
 }
 
 } // namespace img

@@ -79,8 +79,8 @@ public:
     util::log("initializeGL");
     g_ = std::make_unique<gfxopengl::OpenGLGraphicsBackend>();
 
-	gfx::ShaderModule vert{ g_.get(), BACKGROUND_VERT, gfx::ShaderStageFlags::VERTEX };
-	gfx::ShaderModule frag{ g_.get(), BACKGROUND_FRAG, gfx::ShaderStageFlags::FRAGMENT };
+	gfx::ShaderModule vert{ *g_, BACKGROUND_VERT, gfx::ShaderStageFlags::VERTEX };
+	gfx::ShaderModule frag{ *g_, BACKGROUND_FRAG, gfx::ShaderStageFlags::FRAGMENT };
 
 	gfx::RenderPassTargetDesc rptDesc[1] = {
 		gfx::RenderPassTargetDesc{ gfx::ColorF{0.0, 1.0, 0.0, 1.0} }
@@ -90,7 +90,7 @@ public:
 	rpDesc.colorTargets = util::makeConstArrayRef(rptDesc);
 	rpDesc.depthTarget = nullptr;
 
-	renderPass_ = gfx::RenderPass{ g_.get(), rpDesc };
+	renderPass_ = gfx::RenderPass{ *g_, rpDesc };
 	
 	gfx::VertexLayoutElement layoutElements[1] = {
 		gfx::VertexLayoutElement {
@@ -110,14 +110,14 @@ public:
 	gfx::SignatureDesc sigDesc;
 	sigDesc.vertexInputs.data = &binding;
 	sigDesc.vertexInputs.len = 1;
-	signature_ = gfx::Signature{ g_.get(), sigDesc };
+	signature_ = gfx::Signature{ *g_, sigDesc };
 
 	gfx::GraphicsPipelineDesc desc;
 	desc.signature = signature_;
 	desc.renderPass = renderPass_;
 	desc.shaderStages.vertex = vert;
 	desc.shaderStages.fragment = frag;
-	pipeline_ = gfx::GraphicsPipeline{ g_.get(), desc };
+	pipeline_ = gfx::GraphicsPipeline{ *g_, desc };
 
 	
   }
@@ -140,14 +140,14 @@ public:
 	gfx::ArgumentBlockHandle args = g_->createArgumentBlock(signature_);
 	g_->argumentBlockSetVertexBuffer(args, 0, gfx::VertexBufferView{vtx, 0, 12 * sizeof(float) });
 
-	gfx::Image img{ g_.get(), desc };
+	gfx::Image img{ *g_, desc };
 	gfx::RenderTargetView imgRTV = img.asRenderTargetView();
 
 	gfx::FramebufferDesc fbDesc;
 	fbDesc.colorTargets = { 1, &imgRTV };
 	fbDesc.depthTarget = nullptr;
 
-	gfx::Framebuffer fbo{ g_.get(), fbDesc };
+	gfx::Framebuffer fbo{ *g_, fbDesc };
 
     g_->clearRenderTarget(gfx::RenderTargetView{img},
                           gfx::ColorF{0.5f, 0.5f, 0.7f, 1.0f});
