@@ -23,6 +23,8 @@ namespace util {
 // trees to be serialized to a file or on the network.
 class Value {
 public:
+  static Value EMPTY;
+
   using Object = std::map<std::string, Value>;
   using Array = std::vector<Value>;
   using IntArray = std::vector<int64_t>;
@@ -89,6 +91,14 @@ public:
 
   Value(util::StringRef str) : ty_{Type::String} {
     new (&v_.string) std::string{str.to_string()};
+  }
+
+  Value(util::ArrayRef<double> realArray) : ty_{Type::RealArray} {
+    new (&v_.realArray) RealArray{realArray.begin(), realArray.end()};
+  }
+
+  Value(util::ArrayRef<int64_t> intArray) : ty_{Type::IntArray} {
+    new (&v_.intArray) IntArray{intArray.begin(), intArray.end()};
   }
 
   Value(double doubleVal) : ty_{Type::Real} { v_.doubleVal = doubleVal; }

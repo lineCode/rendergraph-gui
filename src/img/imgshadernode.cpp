@@ -2,10 +2,14 @@
 #include "fmt/format.h"
 #include "gfx/pipeline.h"
 #include "gfx/signature.h"
-#include "util/log.h"
 #include "img/constantbufferbuilder.h"
-
+#include "node/blueprint.h"
+#include "util/log.h"
 #include <regex>
+
+using node::Node;
+using node::Network;
+using node::Blueprint;
 
 namespace img {
 
@@ -119,7 +123,7 @@ bool ImgShaderNode::compile(gfx::GraphicsBackend &gfx) {
 }
 
 void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
-                      const ScreenSpaceContext &ctx) {
+                            const ScreenSpaceContext &ctx) {
   if (shaderDirty_) {
     compile(gfx);
   }
@@ -164,13 +168,18 @@ void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
   // renderTargets_[0]->markDirty();
 }
 
-node::Node *ImgShaderNode::make(node::Network &parent, std::string name, node::Blueprint& blueprint) {
-	parent.addChild(std::make_unique<ImgShaderNode>(parent, std::move(name), blueprint));
+void ImgShaderNode::registerBlueprint() {
+  ImgNetwork::registerChild(new Blueprint(
+      "ImgShaderNode", "Shader", "Runs a screen-space shader.", "",
+      [](Network &parent, std::string name,
+         Blueprint &blueprint) -> Node * {
+        return new ImgShaderNode(parent, std::move(name), blueprint);
+      }));
 }
 
-
-ImgShaderNode::ImgShaderNode(node::Network &parent, std::string name, node::Blueprint& blueprint)
-    : ImgNode{parent, std::move(name), blueprint},
-      fragCode_{DEFAULT_FRAG_CODE} {}
+ImgShaderNode::ImgShaderNode(Network &parent, std::string name,
+                             Blueprint &blueprint)
+    : ImgNode{parent, std::move(name), blueprint}, fragCode_{
+                                                       DEFAULT_FRAG_CODE} {}
 
 } // namespace img

@@ -2,7 +2,9 @@
 #include "QtAwesome/QtAwesome.h"
 #include "img/imgshadernode.h"
 #include "img/outputnode.h"
+#include "img/imgclear.h"
 #include "ui/connectdialog.h"
+#include "node/blueprint.h"
 #include "ui/nodes/nodeparams.h"
 #include "util/log.h"
 #include "util/jsonwriter.h"
@@ -29,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // root graph node
   root_ =
-      std::make_unique<img::ImgNetwork>(nullptr, "root", *renderTargetCache_);
+      std::make_unique<img::ImgNetwork>(nullptr, "root");
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -39,33 +41,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connect(networkView, &NetworkView::connectionRequest, this,
           &MainWindow::addConnection);
 
-  auto buttonScaleUp = new QPushButton("+");
-  connect(buttonScaleUp, SIGNAL(released()), this, SLOT(scaleUp()));
-
-  auto buttonScaleDown = new QPushButton("-");
-  connect(buttonScaleDown, SIGNAL(released()), this, SLOT(scaleDown()));
-
-  auto buttonAddNode = new QPushButton("Add Node");
-  connect(buttonAddNode, SIGNAL(released()), this, SLOT(addNode()));
-
   // actions
   deleteNodeAct =
       new QAction(qtAwesome()->icon(fa::trasho), "Delete Node", this);
   connect(deleteNodeAct, SIGNAL(triggered()), this,
           SLOT(deleteSelectedNodes()));
-
-  addNodeAct = new QAction(qtAwesome()->icon(fa::plus), "Add Node", this);
-  connect(addNodeAct, &QAction::triggered, this, &MainWindow::addNode);
-
-  addOutputNodeAct =
-      new QAction(qtAwesome()->icon(fa::plus), "Add Output Node", this);
-  connect(addOutputNodeAct, &QAction::triggered, this,
-          &MainWindow::addOutputNode);
-
-  connectToServerAct =
-      new QAction{qtAwesome()->icon(fa::wifi), "Connect to Server", this};
-  connect(connectToServerAct, &QAction::triggered, this,
-          &MainWindow::connectToServer);
 
   saveAct = new QAction{qtAwesome()->icon(fa::save), "Save Network...", this};
   connect(saveAct, &QAction::triggered, this, &MainWindow::saveNetwork);
@@ -78,7 +58,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // menu
   auto fileMenu = menuBar()->addMenu("&File");
-  fileMenu->addAction(connectToServerAct);
   fileMenu->addAction(saveAct);
   fileMenu->addSeparator();
   fileMenu->addAction(exitAct);
@@ -87,11 +66,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // layout
   auto layout = new QVBoxLayout;
-  // layout->addWidget(listView);
   layout->addWidget(networkView);
-  layout->addWidget(buttonAddNode);
-  layout->addWidget(buttonScaleUp);
-  layout->addWidget(buttonScaleDown);
 
   // dock panels
   setDockNestingEnabled(true);
@@ -102,15 +77,24 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   networkViewDockWidget->setWidget(networkViewPanel);
   addDockWidget(Qt::RightDockWidgetArea, networkViewDockWidget);
 
-  auto paramDockWidget = new QDockWidget{tr("Network View")};
+  auto paramDockWidget = new QDockWidget{tr("Parameters")};
   paramPanel_ = new QWidget;
   // paramPanel->setLayout(layout);
   paramDockWidget->setWidget(paramPanel_);
   addDockWidget(Qt::LeftDockWidgetArea, paramDockWidget);
 
   // status bar
-  connectionStatus = new QLabel{"Status: Disconnected"};
+  connectionStatus = new QLabel{"Status: ?"};
   statusBar()->addPermanentWidget(connectionStatus);
+
+  registerBlueprints();
+}
+
+void MainWindow::registerBlueprints() {
+	// IMG nodes
+	img::ImgShaderNode::registerBlueprint();
+	img::ImgOutput::registerBlueprint();
+	img::ImgClear::registerBlueprint();
 }
 
 void MainWindow::exit() {
@@ -126,36 +110,6 @@ void MainWindow::saveNetwork() {
   root_->save(writer);
 }
 
-void MainWindow::connectToServer() {
-  ui::ConnectDialog dialog;
-  dialog.exec();
-
-  QString endpoint;
-  switch (dialog.transport()) {
-  case 0:
-    endpoint.append("tcp://");
-    break;
-  case 1:
-  default:
-    endpoint.append("ipc://");
-    break;
-  }
-
-  endpoint.append(dialog.address());
-  auto endpointStr = endpoint.toStdString();
-  client_ = std::make_unique<client::RendergraphClient>(
-      util::StringRef{endpointStr.c_str(), endpointStr.size()});
-  client_->setTimeoutMs(250);
-  try {
-    auto versionReply = client_->send(client::method::GetVersion{});
-    util::log("versionReply status={} version={}",
-              static_cast<int>(versionReply.status), versionReply.version);
-    // got a valid reply
-  } catch (client::RendergraphClient::TimeoutError) {
-    util::log("Timeout when establishing connection");
-  }
-}
-
 void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
   // Show different menus if there is a selection or not.
   auto selectedNodes = networkView->selectedNodes();
@@ -165,8 +119,16 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
     contextMenu.exec(networkView->mapToGlobal(pos));
   } else {
     QMenu contextMenu;
-    contextMenu.addAction(addNodeAct);
-    contextMenu.addAction(addOutputNodeAct);
+	node::BlueprintTable& currentNetworkBlueprints = root_->blueprints();
+	int n = currentNetworkBlueprints.count();
+	for (int i = 0; i < n; ++i) {
+	  node::Blueprint& bp = currentNetworkBlueprints.at(i);
+	  auto act = contextMenu.addAction(QString::fromStdString(bp.friendlyName().to_string()));
+	  connect(act, &QAction::triggered, this, [this, &bp] () {
+		  addNode(bp);
+	  });
+	}
+
     contextMenu.exec(networkView->mapToGlobal(pos));
   }
 }
@@ -190,17 +152,9 @@ void MainWindow::scaleDown() {
   // imageView->setScale(imageView->scale() * 0.5);
 }
 
-void MainWindow::addOutputNode() {
-  auto n = img::ImgOutput::make(*root_, "output");
-}
-
-void MainWindow::addNode() {
-  auto n = img::ImgShaderNode::make(*root_, "screen");
-  n->createParameter("testParam", "Test Parameter", 0.0);
-  n->createParameter("testParam2", "Test Parameter 2", 0.0);
-  n->createInput("input0");
-  n->createInput("input1");
-  n->createOutput("output0");
+void MainWindow::addNode(node::Blueprint& blueprint) {
+	auto typeName = blueprint.typeName().to_string();
+	root_->createNode(typeName, typeName);
 }
 
 MainWindow::~MainWindow() {}

@@ -1,18 +1,18 @@
 #pragma once
-#include "imageview.h"
-#include "networkview.h"
-#include "standardnetworkmodel.h"
-#include "ui/renderoutputview.h"
+#include "client/client.h"
 #include "gfx/gfx.h"
 #include "gfxopengl/opengl.h"
-#include "node/network.h"
-#include "img/rendertarget.h"
+#include "imageview.h"
 #include "img/imgnetwork.h"
 #include "img/imgnode.h"
-#include "client/client.h"
+#include "img/rendertarget.h"
+#include "networkview.h"
+#include "node/network.h"
+#include "standardnetworkmodel.h"
+#include "ui/renderoutputview.h"
+#include <QLabel>
 #include <QListView>
 #include <QMainWindow>
-#include <QLabel>
 #include <QOpenGLWidget>
 
 namespace ui {
@@ -24,34 +24,30 @@ public:
   ~MainWindow();
 
 private Q_SLOTS:
-	void connectToServer();
-	void exit();
+  void exit();
   void scaleUp();
   void scaleDown();
   void showNetworkViewContextMenu(const QPoint &);
   void deleteSelectedNodes();
-  void addConnection(node::Node* from, node::Output* output, node::Node *to, node::Input* input);
+  void addConnection(node::Node *from, node::Output *output, node::Node *to,
+                     node::Input *input);
 
-  void addNode();
-  void addOutputNode();
+  void addNode(node::Blueprint &blueprint);
   void saveNetwork();
+  void registerBlueprints();
 
 private:
-  QAction* connectToServerAct;
   QAction *deleteNodeAct;
-  QAction* exitAct;
-  QAction* showRenderOutputAct;
+  QAction *exitAct;
+  QAction *showRenderOutputAct;
   QAction *saveAct;
-
-  QAction *addNodeAct;
-  QAction *addOutputNodeAct;
 
   QListView *listView;
   NetworkView *networkView;
-  RenderOutputView* renderOutput;
-  QWidget* paramPanel_;
+  RenderOutputView *renderOutput;
+  QWidget *paramPanel_;
 
-  QLabel* connectionStatus;
+  QLabel *connectionStatus;
   bool connected_ = false;
 
   int nodeIdCounter = 0;

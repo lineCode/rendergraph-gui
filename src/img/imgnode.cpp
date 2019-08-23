@@ -78,8 +78,13 @@ void ImgNode::assignOutputImagePrivate(Output *out, RenderTarget *renderTarget,
 
 ImgNode::ImgNode(node::Network &parent, std::string name,
                  node::Blueprint &blueprint)
-    : Node{ &parent, std::move(name), blueprint}, parent_{
+    : Node{ &parent, std::move(name), &blueprint}, parent_{
                                                      static_cast<ImgNetwork &>(
                                                          parent)} {}
+
+RenderTargetCache &ImgNode::renderTargetCache() {
+	// TODO
+	return *(RenderTargetCache*)nullptr;
+}
 
 } // namespace img

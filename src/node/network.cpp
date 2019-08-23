@@ -1,16 +1,25 @@
-
-#include "network.h"
+#include "node/network.h"
 #include "fmt/format.h"
+#include "node/blueprint.h"
+#include "util/log.h"
 #include <algorithm>
 
 namespace node {
 
-Node *Network::addChild(Node::Ptr ptr) {
+//----------------------------------------------------------------------------------
+Node *Network::createNode(util::StringRef typeName, std::string name) {
+  auto bp = blueprints_.findBlueprint(typeName);
+  if (!bp) {
+    util::log("WARNING Network::createNode: unknown node type `{}`", typeName.to_string());
+  }
+  return addChild(bp->make(*this, std::move(name)));
+}
+
+Node *Network::addChild(Node *ptr) {
   makeNameUnique(ptr->name_);
-  auto p = ptr.get();
-  children_.push_back(std::move(ptr));
-  onChildAdded(p);
-  return p;
+  children_.push_back(std::unique_ptr<Node>(ptr));
+  onChildAdded(ptr);
+  return ptr;
 }
 
 void Network::deleteChild(Node *node) {
@@ -72,9 +81,7 @@ void Network::makeNameUnique(std::string &name) {
   }
 }
 
-void Network::loadInternal(util::StringRef key, util::JsonReader &r) {
-
-}
+void Network::loadInternal(util::StringRef key, util::JsonReader &r) {}
 
 void Network::saveInternal(util::JsonWriter &w) {
   w.name("children");

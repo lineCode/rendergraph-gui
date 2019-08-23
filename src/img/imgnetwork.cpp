@@ -3,6 +3,7 @@
 #include "img/imgnode.h"
 #include "img/outputnode.h"
 #include "img/rendertarget.h"
+#include "node/blueprint.h"
 #include "util/log.h"
 
 #include <unordered_map>
@@ -11,13 +12,18 @@ using node::Network;
 
 namespace img {
 
+node::BlueprintTable ImgNetwork::imgBlueprints_;
+
+void ImgNetwork::registerChild(node::Blueprint* blueprint) {
+  imgBlueprints_.registerBlueprint(blueprint);
+}
+
 void ImgNetwork::setOutput(ImgOutput *output) {
   if (output) {
-	  util::log("ImgNetwork[{}]: setting output node -> {}", name().to_string(),
-		  output->name().to_string());
-  }
-  else {
-	  util::log("ImgNetwork[{}]: unsetting output", name().to_string());
+    util::log("ImgNetwork[{}]: setting output node -> {}", name().to_string(),
+              output->name().to_string());
+  } else {
+    util::log("ImgNetwork[{}]: unsetting output", name().to_string());
   }
   output_ = output;
 }
@@ -39,10 +45,6 @@ void ImgNetwork::onChildRemoved(Node *node) {
     // output node was removed
     setOutput(nullptr);
   }
-}
-
-node::Node *ImgNetwork::make(node::Network &parent, std::string name, node::Blueprint& blueprint) {
-	return parent.addChild(std::make_unique<ImgNetwork>(parent, std::move(name), blueprint));
 }
 
 } // namespace img

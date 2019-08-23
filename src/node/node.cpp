@@ -1,8 +1,11 @@
 #include "node/node.h"
 #include "node/network.h"
 #include "node/observer.h"
+#include "node/param.h"
 #include "util/log.h"
 #include <algorithm>
+
+using util::Value;
 
 namespace node {
 static int uniqueNodeIdCounter = 0;
@@ -11,39 +14,10 @@ static int getUniqueNodeIdCounter() { return uniqueNodeIdCounter++; }
 
 static void setUniqueNodeIdCounter(int value) { uniqueNodeIdCounter = value; }
 
-//------------------------------------------------------------------------------------
-class Blueprint {
-  friend class Node;
-
-public:
-  Blueprint(std::string name,
-            Node *(*constructor)(Network &, std::string, Blueprint &))
-      : name_{name}, constructor_{constructor} {}
-
-private:
-  std::string name_;
-  Node *(*constructor_)(Network &, std::string, Blueprint &);
-};
-
-std::vector<std::unique_ptr<Blueprint>> Node::blueprints_;
-
-void Node::registerBlueprint(std::string name,
-                             Node *(*constructor)(Network &, std::string,
-                                                  Blueprint &blueprint)) {
-  // check for duplicate name
-  for (auto &&bp : blueprints_) {
-    if (bp->name_ == name) {
-      util::log("WARNING Node::registerBlueprint: duplicate blueprints with "
-                "name `{}`",
-                name);
-      return;
-    }
-  }
-  blueprints_.push_back(std::make_unique<Blueprint>(name, constructor));
-}
 
 //------------------------------------------------------------------------------------
-Node::Node(node::Network *parent, std::string name, node::Blueprint& blueprint) : name_{ name }, parent_{ parent }, blueprint_{ blueprint } {
+Node::Node(node::Network *parent, std::string name, node::Blueprint *blueprint)
+    : name_{name}, parent_{parent}, blueprint_{blueprint} {
   id_ = getUniqueNodeIdCounter();
 }
 
@@ -259,27 +233,6 @@ void Node::disconnectOutput(Output *output) {
   }
 }
 
-Param *Node::createParameter(std::string name, std::string description,
-                             double initValue) {
-  auto param =
-      pushUniquePtr(params_, Param::make(this, std::move(name),
-                                         std::move(description), initValue));
-  return param;
-}
-
-void Node::deleteParameter(Param *p) { eraseRemoveUniquePtr(params_, p); }
-
-// child added
-void Node::onChildAdded(Node *node) {
-  // TODO
-  util::log("Node[{}]::onChildAdded({})", name().to_string(),
-            node->name().to_string());
-  EventData e;
-  e.source = this;
-  e.type = EventType::ChildAdded;
-  e.u.childAdded.node = node;
-  notify(e);
-}
 
 // child about to be removed
 void Node::onChildRemoved(Node *node) {
@@ -480,8 +433,59 @@ bool Node::inputSource(Input *input, Node *&node, Output *&output) {
   return true;
 }
 
-// Serialization
 // ===================================================================
+// Parameters
+
+Param *Node::createParameter(const ParamDesc& desc) {
+	auto param = new Param{ this, desc };
+	params_.push_back(std::unique_ptr<Param>(param));
+	return param;
+}
+
+void Node::deleteParameter(Param *p) { eraseRemoveUniquePtr(params_, p); }
+
+const Value& Node::evalParam(Param &p) {
+	// TODO
+	return p.value();
+}
+
+const Value& Node::evalParam(util::StringRef name) {
+	for (auto&& p : params_) {
+		if (p->desc().name() == name) {
+			return evalParam(*p);
+		}
+	}
+	// oops
+	return Value::EMPTY;
+}
+
+const Value& Node::evalParam(const ParamDesc& param) {
+	for (auto&& p : params_) {
+		if (&p->desc() == &param) {
+			return evalParam(*p);
+		}
+	}
+	// oops
+	return Value::EMPTY;
+}
+
+
+// ===================================================================
+
+// child added
+void Node::onChildAdded(Node *node) {
+	// TODO
+	util::log("Node[{}]::onChildAdded({})", name().to_string(),
+		node->name().to_string());
+	EventData e;
+	e.source = this;
+	e.type = EventType::ChildAdded;
+	e.u.childAdded.node = node;
+	notify(e);
+}
+
+// ===================================================================
+// Serialization
 
 void Node::load(util::JsonReader &r, int baseId) {
   r.beginObject();

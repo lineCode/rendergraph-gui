@@ -2,6 +2,7 @@
 #include "util/jsonreader.h"
 #include "util/jsonwriter.h"
 #include "util/stringref.h"
+#include "util/value.h"
 #include <functional>
 #include <map>
 #include <string>
@@ -16,6 +17,7 @@ class Network;
 class Output;
 class Input;
 class Blueprint;
+class ParamDesc;
 
 class Input {
   friend class Node;
@@ -110,39 +112,6 @@ struct EventData {
 
 using EventHandler = void(const EventData &);
 
-using ParamMap = std::map<std::string, Param *>;
-using InputMap = std::map<std::string, Input *>;
-using OutputMap = std::map<std::string, Output *>;
-
-/// Parameters are displayed in the parameter panel.
-class Param {
-public:
-  using Ptr = std::unique_ptr<Param>;
-  Param(Node *owner, std::string name, std::string description,
-        double initValue)
-      : owner_{owner}, name_{name}, val_{initValue}, description_{std::move(
-                                                         description_)} {}
-
-  ~Param() {}
-
-  util::StringRef name() const { return name_; }
-  double value() const { return val_; }
-  void setValue(double newValue) { val_ = newValue; }
-  util::StringRef description() const { return description_; }
-
-  static Ptr make(Node *owner, std::string name, std::string description,
-                  double initValue) {
-    return std::make_unique<Param>(owner, std::move(name),
-                                   std::move(description), initValue);
-  }
-
-private:
-  Node *owner_;
-  std::string name_;
-  double val_;
-  std::string description_;
-};
-
 // helpers
 template <typename Container, typename T>
 void eraseRemoveUniquePtr(Container &container, const T *val) {
@@ -184,6 +153,7 @@ T *pushUniquePtr(Container &container, std::unique_ptr<T> ptr) {
   return p;
 }
 
+
 /// Base class for all nodes.
 ///
 /// The main purpose of this class is to unify the way dependencies between
@@ -197,7 +167,7 @@ public:
   using Ptr = std::unique_ptr<Node>;
 
   // Node(Network *parent);
-  Node(node::Network *parent, std::string name, node::Blueprint& blueprint);
+  Node(node::Network *parent, std::string name, node::Blueprint* blueprint);
   virtual ~Node();
 
   // Name
@@ -211,10 +181,7 @@ public:
   /// Returns the parent of this node.
   Network *parent() const;
 
-  /// Parameters
-  int paramCount() const;
-  Param *param(int index);
-
+  // Inputs/output
   Input *createInput(std::string name);
   void deleteInput(Input *input);
   void connectInput(Input *input, Node *source, Output *output);
@@ -225,9 +192,6 @@ public:
   Output *createOutput(std::string name);
   void deleteOutput(Output *output);
   void disconnectOutput(Output *output);
-  Param *createParameter(std::string name, std::string description,
-                         double initValue = 0.0);
-  void deleteParameter(Param *p);
 
   // Inputs and outputs
   int inputCount() const { return (int)inputs_.size(); }
@@ -243,11 +207,20 @@ public:
   bool isInputConnected(Input *input);
   bool inputSource(Input *input, Node *&node, Output *&output);
 
+  // Parameters
+  Param *createParameter(const ParamDesc& desc);
+  void deleteParameter(Param *p);
+  int paramCount() const;
+  Param *param(int index);
+
+  const util::Value& evalParam(Param &p);
+  const util::Value& evalParam(util::StringRef name);
+  const util::Value& evalParam(const ParamDesc& param);
+
   // load/save
   void load(util::JsonReader &reader, int baseId);
   void save(util::JsonWriter &writer);
 
-  static void registerBlueprint(std::string typeName, Node* (*constructor)(Network&, std::string, Blueprint& blueprint));
 
 protected:
   Input *createInputInternal(std::string name, int uid);
@@ -288,7 +261,7 @@ private:
 
   bool dirty_ = true;
   std::string name_;
-  Blueprint& blueprint_;
+  Blueprint* blueprint_;
   int outputIdCounter_ = 0;
   int inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.
@@ -296,7 +269,7 @@ private:
 
   // parent of this node, or nullptr if this is the root network
   Network *parent_ = nullptr;
-  std::vector<Param::Ptr> params_;
+  std::vector<std::unique_ptr<Param>> params_;
   std::vector<std::unique_ptr<Input>> inputs_;
   std::vector<std::unique_ptr<Output>> outputs_;
 
@@ -306,8 +279,6 @@ private:
   std::vector<Observer *> observersToAdd_;
   std::vector<Observer *> observersToRemove_; 
 
-  struct Registration;
-  static std::vector<std::unique_ptr<Blueprint>> blueprints_;
 };
 
 

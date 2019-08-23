@@ -15,7 +15,6 @@ struct ScreenSpaceContext {
   double currentTime;
   /// Current frame
   int currentFrame;
-
   /// Constant buffer containing the common parameters (camera, matrices, etc.)
   gfx::ConstantBufferView commonParameters;
   gfx::VertexBufferView quadVertices;
@@ -28,17 +27,16 @@ class ImgNetwork : public node::Network {
 public:
   using Ptr = std::unique_ptr<ImgNetwork>;
 
-  ImgNetwork(node::Network &parent, std::string name,
-             node::Blueprint &blueprint)
-      : Network{parent, name, blueprint} {}
-
-  Node *ImgNetwork::make(node::Network &parent, std::string name,
-                         node::Blueprint &blueprint);
+  ImgNetwork(node::Network *parent, std::string name)
+      : Network{parent, name, nullptr, imgBlueprints_} {}
 
   void onChildAdded(Node *node) override;
   void onChildRemoved(Node *node) override;
 
+  static void registerChild(node::Blueprint* blueprint);
+
 private:
+  static node::BlueprintTable imgBlueprints_;
   void setOutput(ImgOutput *output);
   ImgOutput *output_ = nullptr;
 };

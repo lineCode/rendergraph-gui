@@ -9,7 +9,8 @@ namespace img {
 /// `ImgNode`s execute in the "screen space" context.
 class ImgShaderNode : public img::ImgNode {
 public:
-  ImgShaderNode(node::Network &parent, std::string name, node::Blueprint& blueprint);
+  ImgShaderNode(node::Network &parent, std::string name,
+                node::Blueprint &blueprint);
   //------ Fragment shader ------
 
   /// Returns the body of the fragment shader.
@@ -19,9 +20,10 @@ public:
 
   bool compilationSucceeded() const { return compilationSuccess_; }
 
-  static node::Node *make(node::Network &parent, std::string name, node::Blueprint& blueprint);
+  void execute(gfx::GraphicsBackend &gfx,
+               const ScreenSpaceContext &ctx) override;
 
-  void execute(gfx::GraphicsBackend &gfx, const ScreenSpaceContext &ctx) override;
+  static void registerBlueprint();
 
 private:
   bool compile(gfx::GraphicsBackend &gfx);
