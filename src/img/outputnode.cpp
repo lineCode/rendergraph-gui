@@ -16,6 +16,7 @@ void ImgOutput::execute(gfx::GraphicsBackend &gfx,
 void ImgOutput::registerBlueprint() {
   ImgNetwork::registerChild(new Blueprint(
       "ImgOutput", "Output", "Displays the input image in the viewport.", "",
+	  nullptr,
       [](Network &parent, std::string name, Blueprint &blueprint) -> Node * {
         return new ImgOutput(parent, std::move(name), blueprint);
       }));

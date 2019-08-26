@@ -1,4 +1,5 @@
 #include "ui/nodes/nodeparams.h"
+#include "node/param.h"
 #include <QFormLayout>
 #include <QSpinBox>
 #include <QWidget>
@@ -16,7 +17,8 @@ void NodeParams::rebuild() {
   setLayout(layout);
 
   int np = node_.paramCount();
-  for (int i = 0; i < np; ++i) {
+  for (int i = 0; i < np; ++i) 
+  {
     auto param = node_.param(i);
     auto name = param->name();
     auto spinBox = new QDoubleSpinBox{};

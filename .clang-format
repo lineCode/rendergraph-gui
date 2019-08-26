@@ -3,6 +3,6 @@
 BasedOnStyle: LLVM
 ---
 Language: Cpp
-#AlignConsecutiveDeclarations: true
+AlignConsecutiveDeclarations: true
 DerivePointerAlignment: false
 PointerAlignment: Right

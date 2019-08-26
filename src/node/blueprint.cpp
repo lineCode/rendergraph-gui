@@ -23,7 +23,7 @@ Blueprint *BlueprintTable::findBlueprint(util::StringRef type) {
   return nullptr;
 }
 
-int BlueprintTable::count() { return blueprints_.size(); }
+int BlueprintTable::count() { return (int)blueprints_.size(); }
 
 Blueprint &BlueprintTable::at(int index) { return *blueprints_[index]; }
 

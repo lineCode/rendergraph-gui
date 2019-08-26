@@ -171,6 +171,7 @@ void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
 void ImgShaderNode::registerBlueprint() {
   ImgNetwork::registerChild(new Blueprint(
       "ImgShaderNode", "Shader", "Runs a screen-space shader.", "",
+	  nullptr,
       [](Network &parent, std::string name,
          Blueprint &blueprint) -> Node * {
         return new ImgShaderNode(parent, std::move(name), blueprint);

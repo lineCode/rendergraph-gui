@@ -450,23 +450,31 @@ const Value& Node::evalParam(Param &p) {
 }
 
 const Value& Node::evalParam(util::StringRef name) {
-	for (auto&& p : params_) {
-		if (p->desc().name() == name) {
-			return evalParam(*p);
-		}
+	if (auto p = param(name)) {
+		return evalParam(*p);
 	}
-	// oops
 	return Value::EMPTY;
 }
 
-const Value& Node::evalParam(const ParamDesc& param) {
-	for (auto&& p : params_) {
-		if (&p->desc() == &param) {
-			return evalParam(*p);
-		}
+const Value& Node::evalParam(const ParamDesc& param_) {
+	if (auto p = param(param_)) {
+		return evalParam(*p);
 	}
-	// oops
 	return Value::EMPTY;
+}
+
+void Node::setParam(util::StringRef name, util::Value value) {
+	if (auto p = param(name)) {
+		return setParam(*p);
+	}
+	else {
+		// error?
+	}
+}
+
+void Node::setParam(const ParamDesc& param, util::Value value) 
+{
+
 }
 
 

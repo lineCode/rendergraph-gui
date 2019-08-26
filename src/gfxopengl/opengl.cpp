@@ -449,8 +449,7 @@ gfx::GraphicsPipelineHandle OpenGLGraphicsBackend::createGraphicsPipeline(
   // make VAO from signature
   Signature *signature = (Signature *)desc.signature;
   gl::GLuint vao =
-      createVertexArrayObject({signature->ptr->vertexInputs.size(),
-                               signature->ptr->vertexInputs.data()});
+      createVertexArrayObject({signature->ptr->vertexInputs.data(), signature->ptr->vertexInputs.size()});
 
   GraphicsPipeline *gp = new GraphicsPipeline;
   gp->program = program;

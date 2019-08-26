@@ -29,8 +29,8 @@ enum class ParamHint {
 // color, etc.)
 
 struct ParamFloatRange {
-  bool hasMin;
-  bool hasMax;
+  bool   hasMin;
+  bool   hasMax;
   double min;
   double max;
 };
@@ -51,45 +51,15 @@ public:
   /// parameter be interpreted). Useful for determining what UI to show.
   ParamDesc(const ParamName &name, util::StringRef help,
             util::Value::Type baseType, int numChannels, ParamHint paramHint,
-            util::Value defaultValue,
+            util::Value                     defaultValue,
             util::ArrayRef<ParamFloatRange> channelRanges);
 
-  static ParamDesc floatRaw(const ParamName &name, util::StringRef help,
-                            double v = 0.0) {
-    return ParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
-                     util::Value{v}, nullptr);
-  }
-
-  static ParamDesc floatSlider(const ParamName &name, util::StringRef help,
-                               double v = 0.0) {
-    return ParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
-                     util::Value{v}, nullptr);
-  }
-
-  static ColorParamDesc colorRGBA(const ParamName &name, util::StringRef help,
-                                  double r = 0.0, double g = 0.0,
-                                  double b = 0.0, double a = 1.0) {
-    double rgba[] = {r, g, b, a};
-    return ColorParamDesc(name, help, util::Value::Type::Real, 1,
-                          ParamHint::ColorRGBA,
-                          util::Value{util::makeArrayRef(rgba)}, nullptr);
-  }
-
-  util::StringRef name() const { return name_.name; }
-  util::StringRef friendlyName() const { return name_.friendlyName; }
-  util::Value::Type baseType() const { return baseType_; }
-  ParamHint paramHint() const { return paramHint_; }
-
-private:
-  ParamName name_;
-  util::StringRef help_;
-
-  util::Value::Type baseType_;
-  int numChannels_;
-  ParamHint paramHint_;
-
-  util::ArrayRef<ParamFloatRange> channelRanges_;
-  // TODO channel names
+  ParamName                       name;
+  util::StringRef                 help;
+  util::Value::Type               baseType;
+  int                             numChannels;
+  ParamHint                       paramHint;
+  util::ArrayRef<ParamFloatRange> channelRanges;
 };
 
 class FloatParamDesc : public ParamDesc {
@@ -105,24 +75,48 @@ public:
 
   gfx::ColorF getValue(Node *node) const {
     gfx::ColorF c;
-    auto &&value = node->evalParam(*this);
-    auto &&array = value.asRealArray();
+    auto &&     value = node->evalParam(*this);
+    auto &&     array = value.asRealArray();
     return gfx::ColorF{array[0], array[1], array[2], array[3]};
   }
 };
+
+static FloatParamDesc paramFloat(const ParamName &name, util::StringRef help,
+                                 double v = 0.0) {
+  return FloatParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
+                        util::Value{v}, nullptr);
+}
+
+static FloatParamDesc paramFloatSlider(const ParamName &name,
+                                       util::StringRef help, double v = 0.0) {
+  return FloatParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
+                        util::Value{v}, nullptr);
+}
+
+static ColorParamDesc paramColorRGBA(const ParamName &name,
+                                     util::StringRef help, double r = 0.0,
+                                     double g = 0.0, double b = 0.0,
+                                     double a = 1.0) {
+  double rgba[] = {r, g, b, a};
+  return ColorParamDesc(name, help, util::Value::Type::Real, 1,
+                        ParamHint::ColorRGBA,
+                        util::Value{util::makeArrayRef(rgba)}, nullptr);
+}
 
 //=======================================================================================
 class Param {
 public:
   Param(Node *owner, const ParamDesc &desc) : owner_{owner}, desc_{desc} {}
 
+  util::StringRef  name() const { return desc_.name.name; }
+  util::StringRef  friendlyName() const { return desc_.name.friendlyName; }
   const ParamDesc &desc() const { return desc_; }
-  util::Value &value() { return value_; }
+  util::Value &    value() { return value_; }
 
 private:
-  Node *owner_;
+  Node *           owner_;
   const ParamDesc &desc_;
-  util::Value value_;
+  util::Value      value_;
 };
 
 } // namespace node

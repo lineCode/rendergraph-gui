@@ -11,9 +11,8 @@ using node::ParamName;
 
 namespace img {
 
-static ParamDesc P_clearColor = ParamDesc::colorRGBA(
-    ParamName("color"), "The color to fill the image with.");
-
+static ParamDesc P_CLEAR_COLOR = node::paramColorRGBA(ParamName("color"), "The color to fill the image with.");
+static ParamDesc PARAMS[] = { P_CLEAR_COLOR };
 
 void ImgClear::execute(gfx::GraphicsBackend &gfx,
                        const ScreenSpaceContext &ctx) {
@@ -24,6 +23,7 @@ void ImgClear::execute(gfx::GraphicsBackend &gfx,
 void ImgClear::registerBlueprint() {
   ImgNetwork::registerChild(new Blueprint(
       "ImgClear", "Clear", "Creates an image cleared to the given color.", "",
+	  PARAMS,
       [](Network &parent, std::string name, Blueprint &blueprint) -> Node * {
         return new ImgClear(parent, name, blueprint);
       }));

@@ -74,6 +74,7 @@ public:
     default:
       break;
     }
+	return *this;
   }
 
   enum class Type {

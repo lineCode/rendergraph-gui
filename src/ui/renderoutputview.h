@@ -144,7 +144,7 @@ public:
 	gfx::RenderTargetView imgRTV = img.asRenderTargetView();
 
 	gfx::FramebufferDesc fbDesc;
-	fbDesc.colorTargets = { 1, &imgRTV };
+	fbDesc.colorTargets = { &imgRTV, 1 };
 	fbDesc.depthTarget = nullptr;
 
 	gfx::Framebuffer fbo{ *g_, fbDesc };

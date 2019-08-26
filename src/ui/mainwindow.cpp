@@ -136,7 +136,7 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
 void MainWindow::deleteSelectedNodes() {
   auto selectedNodes = networkView->selectedNodes();
   root_->deleteChildren(util::ArrayRef<Node *const>{
-      (size_t)selectedNodes.size(), selectedNodes.data()});
+      selectedNodes.data(), (size_t)selectedNodes.size()});
 }
 
 void MainWindow::addConnection(node::Node *from, node::Output *output,

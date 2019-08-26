@@ -21,19 +21,15 @@ class ParamDesc;
 
 class Input {
   friend class Node;
-
   using Ptr = std::unique_ptr<Input>;
 
-  int id = 0;
+  int         id = 0;
   std::string name = "";
-
-  bool showConnector = false;
-
+  bool        showConnector = false;
   std::string sourcePath = "";
   std::string sourceOutputName = "";
-
-  Node *source = nullptr;
-  Output *output = nullptr;
+  Node *      source = nullptr;
+  Output *    output = nullptr;
 };
 
 class Output {
@@ -41,8 +37,8 @@ class Output {
 
   using Ptr = std::unique_ptr<Output>;
 
-  int id = 0;
-  std::string name;
+  int                 id = 0;
+  std::string         name;
   std::vector<Node *> dependents;
 };
 
@@ -68,7 +64,7 @@ enum class EventType {
 };
 
 struct EventData {
-  Node *source;
+  Node *    source;
   EventType type;
   union {
     struct {
@@ -96,16 +92,16 @@ struct EventData {
       Output *output;
     } outputRemoved;
     struct {
-      Node *source;
+      Node *  source;
       Output *output;
-      Node *dest;
-      Input *input;
+      Node *  dest;
+      Input * input;
     } connectionAdded;
     struct {
-      Node *source;
+      Node *  source;
       Output *output;
-      Node *dest;
-      Input *input;
+      Node *  dest;
+      Input * input;
     } connectionRemoved;
   } u;
 };
@@ -153,7 +149,6 @@ T *pushUniquePtr(Container &container, std::unique_ptr<T> ptr) {
   return p;
 }
 
-
 /// Base class for all nodes.
 ///
 /// The main purpose of this class is to unify the way dependencies between
@@ -167,13 +162,13 @@ public:
   using Ptr = std::unique_ptr<Node>;
 
   // Node(Network *parent);
-  Node(node::Network *parent, std::string name, node::Blueprint* blueprint);
+  Node(node::Network *parent, std::string name, node::Blueprint *blueprint);
   virtual ~Node();
 
   // Name
   util::StringRef name() const;
-  void setName(std::string name);
-  int uniqueId();
+  void            setName(std::string name);
+  int             uniqueId();
 
   /// Marks this node as dirty.
   void markDirty();
@@ -181,54 +176,58 @@ public:
   /// Returns the parent of this node.
   Network *parent() const;
 
-  // Inputs/output
-  Input *createInput(std::string name);
-  void deleteInput(Input *input);
-  void connectInput(Input *input, Node *source, Output *output);
-  void connectInput(Input *input, std::string node, std::string output);
-  bool resolveInput(Input *input);
-  void disconnectInput(Input *input);
-  int referenceCount(Node *source, Output *output);
+  // Inputs/outputs
+  Input * createInput(std::string name);
+  void    deleteInput(Input *input);
+  void    connectInput(Input *input, Node *source, Output *output);
+  void    connectInput(Input *input, std::string node, std::string output);
+  bool    resolveInput(Input *input);
+  void    disconnectInput(Input *input);
+  int     referenceCount(Node *source, Output *output);
   Output *createOutput(std::string name);
-  void deleteOutput(Output *output);
-  void disconnectOutput(Output *output);
+  void    deleteOutput(Output *output);
+  void    disconnectOutput(Output *output);
 
-  // Inputs and outputs
-  int inputCount() const { return (int)inputs_.size(); }
-  Input *input(int index);
-  Input *input(util::StringRef name);
-  int outputCount() const { return (int)outputs_.size(); }
-  Output *output(int index);
-  Output *output(util::StringRef name);
+  int             inputCount() const { return (int)inputs_.size(); }
+  Input *         input(int index);
+  Input *         input(util::StringRef name);
+  int             outputCount() const { return (int)outputs_.size(); }
+  Output *        output(int index);
+  Output *        output(util::StringRef name);
   util::StringRef inputName(Input *input);
   util::StringRef outputName(Output *output);
-  int inputUniqueId(Input *input);
-  int outputUniqueId(Output *output);
-  bool isInputConnected(Input *input);
-  bool inputSource(Input *input, Node *&node, Output *&output);
+  int             inputUniqueId(Input *input);
+  int             outputUniqueId(Output *output);
+  bool            isInputConnected(Input *input);
+  bool            inputSource(Input *input, Node *&node, Output *&output);
 
   // Parameters
-  Param *createParameter(const ParamDesc& desc);
-  void deleteParameter(Param *p);
-  int paramCount() const;
+  Param *createParameter(const ParamDesc &desc);
+  void   deleteParameter(Param *p);
+  int    paramCount() const;
   Param *param(int index);
+  Param *param(const ParamDesc &param);
+  Param *param(util::StringRef name);
 
-  const util::Value& evalParam(Param &p);
-  const util::Value& evalParam(util::StringRef name);
-  const util::Value& evalParam(const ParamDesc& param);
+  const util::Value &evalParam(Param &p);
+  const util::Value &evalParam(util::StringRef name);
+  const util::Value &evalParam(const ParamDesc &param);
+  void setParam(util::StringRef name, util::Value value);
+  void setParam(const ParamDesc& param, util::Value value);
+  void setParam(Param& p, util::Value value);
 
   // load/save
   void load(util::JsonReader &reader, int baseId);
   void save(util::JsonWriter &writer);
 
-
 protected:
-  Input *createInputInternal(std::string name, int uid);
+  Input * createInputInternal(std::string name, int uid);
   Output *createOutputInternal(std::string name, int uid);
 
   virtual void loadInternal(util::StringRef key, util::JsonReader &reader);
   virtual void saveInternal(util::JsonWriter &writer);
 
+  void         notify(const EventData &e);
   virtual void onChildAdded(Node *node);
   virtual void onChildRemoved(Node *node);
   virtual void onReferenceAdded(Node *to);
@@ -244,7 +243,6 @@ protected:
                                  Input *input);
   virtual void onConnectionRemoved(Node *source, Output *output, Node *dest,
                                    Input *input);
-  void notify(const EventData &e);
 
 private:
   void addDependentNode(Output *output, Node *destination, Input *input);
@@ -259,27 +257,25 @@ private:
   int getInputId() { return inputIdCounter_++; }
   int getOutputId() { return outputIdCounter_++; }
 
-  bool dirty_ = true;
+  bool        dirty_ = true;
   std::string name_;
-  Blueprint* blueprint_;
-  int outputIdCounter_ = 0;
-  int inputIdCounter_ = 0;
+  Blueprint * blueprint_;
+  int         outputIdCounter_ = 0;
+  int         inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.
   int id_ = 0;
 
   // parent of this node, or nullptr if this is the root network
-  Network *parent_ = nullptr;
-  std::vector<std::unique_ptr<Param>> params_;
-  std::vector<std::unique_ptr<Input>> inputs_;
+  Network *                            parent_ = nullptr;
+  std::vector<std::unique_ptr<Param>>  params_;
+  std::vector<std::unique_ptr<Input>>  inputs_;
   std::vector<std::unique_ptr<Output>> outputs_;
 
   // observers
-  int notifying_ = 0;
+  int                     notifying_ = 0;
   std::vector<Observer *> observers_;
   std::vector<Observer *> observersToAdd_;
-  std::vector<Observer *> observersToRemove_; 
-
+  std::vector<Observer *> observersToRemove_;
 };
-
 
 } // namespace node
