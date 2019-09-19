@@ -5,13 +5,6 @@
 
 namespace node {
 
-struct ParamName {
-  ParamName(util::StringRef name, util::StringRef friendlyName = "")
-      : name{name}, friendlyName{friendlyName} {}
-  util::StringRef name;
-  util::StringRef friendlyName;
-};
-
 enum class ParamHint {
   None,
   MinMax,
@@ -21,6 +14,8 @@ enum class ParamHint {
   FileName,  // String
   Ramp,
   UiSlider, // Unspecified, but display with a slider
+
+  Input,	// This is a node input (displays with a connector)
 };
 
 //------------------------------------------------------------------------------------
@@ -49,17 +44,18 @@ public:
   /// numChannels: number of channels (for array base types)
   /// typeHint: type interpretation hint (how should the value inside the
   /// parameter be interpreted). Useful for determining what UI to show.
-  ParamDesc(const ParamName &name, util::StringRef help,
-            util::Value::Type baseType, int numChannels, ParamHint paramHint,
-            util::Value                     defaultValue,
+  ParamDesc(util::StringRef name, util::StringRef friendlyName,
+            util::StringRef help, util::Value::Type baseType, int numChannels,
+            ParamHint paramHint, util::Value defaultValue,
             util::ArrayRef<ParamFloatRange> channelRanges);
 
-  ParamName                       name;
-  util::StringRef                 help;
+  std::string                 name;
+  std::string				  friendlyName;
+  std::string                 help;
   util::Value::Type               baseType;
   int                             numChannels;
   ParamHint                       paramHint;
-  util::ArrayRef<ParamFloatRange> channelRanges;
+  std::vector<ParamFloatRange> channelRanges;
 };
 
 class FloatParamDesc : public ParamDesc {
@@ -81,41 +77,46 @@ public:
   }
 };
 
-static FloatParamDesc paramFloat(const ParamName &name, util::StringRef help,
-                                 double v = 0.0) {
-  return FloatParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
-                        util::Value{v}, nullptr);
+static FloatParamDesc paramFloat(util::StringRef name,
+                                 util::StringRef friendlyName,
+                                 util::StringRef help, double v = 0.0) {
+  return FloatParamDesc(name, friendlyName, help, util::Value::Type::Real, 1,
+                        ParamHint::None, util::Value{v}, nullptr);
 }
 
-static FloatParamDesc paramFloatSlider(const ParamName &name,
+static FloatParamDesc paramFloatSlider(util::StringRef name,
+                                       util::StringRef friendlyName,
                                        util::StringRef help, double v = 0.0) {
-  return FloatParamDesc(name, help, util::Value::Type::Real, 1, ParamHint::None,
-                        util::Value{v}, nullptr);
+  return FloatParamDesc(name, friendlyName, help, util::Value::Type::Real, 1,
+                        ParamHint::None, util::Value{v}, nullptr);
 }
 
-static ColorParamDesc paramColorRGBA(const ParamName &name,
+static ColorParamDesc paramColorRGBA(util::StringRef name,
+                                     util::StringRef friendlyName,
                                      util::StringRef help, double r = 0.0,
                                      double g = 0.0, double b = 0.0,
                                      double a = 1.0) {
   double rgba[] = {r, g, b, a};
-  return ColorParamDesc(name, help, util::Value::Type::Real, 1,
+  return ColorParamDesc(name, friendlyName, help, util::Value::Type::Real, 1,
                         ParamHint::ColorRGBA,
                         util::Value{util::makeArrayRef(rgba)}, nullptr);
 }
 
+
+
 //=======================================================================================
 class Param {
 public:
-  Param(Node *owner, const ParamDesc &desc) : owner_{owner}, desc_{desc} {}
+  Param(Node *owner, std::shared_ptr<const ParamDesc> desc) : owner_{owner}, desc_{std::move(desc)} {}
 
-  util::StringRef  name() const { return desc_.name.name; }
-  util::StringRef  friendlyName() const { return desc_.name.friendlyName; }
-  const ParamDesc &desc() const { return desc_; }
+  util::StringRef  name() const { return desc_->name; }
+  util::StringRef  friendlyName() const { return desc_->friendlyName; }
+  const ParamDesc &desc() const { return *desc_; }
   util::Value &    value() { return value_; }
 
 private:
   Node *           owner_;
-  const ParamDesc &desc_;
+  std::shared_ptr<const ParamDesc> desc_;
   util::Value      value_;
 };
 

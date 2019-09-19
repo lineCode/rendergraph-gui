@@ -1,19 +1,9 @@
 #include "node/network.h"
 #include "fmt/format.h"
-#include "node/blueprint.h"
 #include "util/log.h"
 #include <algorithm>
 
 namespace node {
-
-//----------------------------------------------------------------------------------
-Node *Network::createNode(util::StringRef typeName, std::string name) {
-  auto bp = blueprints_.findBlueprint(typeName);
-  if (!bp) {
-    util::log("WARNING Network::createNode: unknown node type `{}`", typeName.to_string());
-  }
-  return addChild(bp->make(*this, std::move(name)));
-}
 
 Node *Network::addChild(Node *ptr) {
   makeNameUnique(ptr->name_);

@@ -76,9 +76,9 @@ void ImgNode::assignOutputImagePrivate(Output *out, RenderTarget *renderTarget,
   // TODO send event
 }
 
-ImgNode::ImgNode(node::Network &parent, std::string name,
-                 node::Blueprint &blueprint)
-    : Node{ &parent, std::move(name), &blueprint}, parent_{
+ImgNode::ImgNode(node::Network &parent, util::StringRef name,
+                 node::NodeTemplate &tpl)
+    : Node{ &parent, std::move(name), tpl}, parent_{
                                                      static_cast<ImgNetwork &>(
                                                          parent)} {}
 

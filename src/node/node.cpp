@@ -2,6 +2,7 @@
 #include "node/network.h"
 #include "node/observer.h"
 #include "node/param.h"
+#include "node/template.h"
 #include "util/log.h"
 #include <algorithm>
 
@@ -14,11 +15,19 @@ static int getUniqueNodeIdCounter() { return uniqueNodeIdCounter++; }
 
 static void setUniqueNodeIdCounter(int value) { uniqueNodeIdCounter = value; }
 
-
 //------------------------------------------------------------------------------------
-Node::Node(node::Network *parent, std::string name, node::Blueprint *blueprint)
-    : name_{name}, parent_{parent}, blueprint_{blueprint} {
+Node::Node() : name_ { "" }, parent_{ nullptr } {
+	id_ = getUniqueNodeIdCounter();
+}
+
+Node::Node(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl_)
+    : name_{name.to_string()}, parent_{parent} {
   id_ = getUniqueNodeIdCounter();
+
+  // create parameters and inputs from the template
+  for (auto pd : tpl_.params()) {
+    createParameter(*pd);
+  }
 }
 
 Node::~Node() {
@@ -201,7 +210,7 @@ Output *Node::createOutput(std::string name) {
 
 Output *Node::createOutputInternal(std::string name, int uid) {
 
-  int outputId = getOutputId();
+  int    outputId = getOutputId();
   Output out;
   out.id = outputId;
   out.name = makeUniqueOutputName(name, outputId);
@@ -232,7 +241,6 @@ void Node::disconnectOutput(Output *output) {
     }
   }
 }
-
 
 // child about to be removed
 void Node::onChildRemoved(Node *node) {
@@ -436,60 +444,88 @@ bool Node::inputSource(Input *input, Node *&node, Output *&output) {
 // ===================================================================
 // Parameters
 
-Param *Node::createParameter(const ParamDesc& desc) {
-	auto param = new Param{ this, desc };
-	params_.push_back(std::unique_ptr<Param>(param));
-	return param;
+Param *Node::createParameter(const ParamDesc &desc) {
+  util::log("Node[{}]::createParameter name={}", name().to_string(),
+            desc.name);
+  auto param = new Param{this, std::make_shared<ParamDesc>(desc)};
+  params_.push_back(std::unique_ptr<Param>(param));
+  return param;
 }
 
-void Node::deleteParameter(Param *p) { eraseRemoveUniquePtr(params_, p); }
-
-const Value& Node::evalParam(Param &p) {
-	// TODO
-	return p.value();
+void Node::deleteParameter(Param *p) {
+  util::log("Node[{}]::deleteParameter name={}", p->name().to_string());
+  eraseRemoveUniquePtr(params_, p);
 }
 
-const Value& Node::evalParam(util::StringRef name) {
-	if (auto p = param(name)) {
-		return evalParam(*p);
-	}
-	return Value::EMPTY;
+const Value &Node::evalParam(Param &p) {
+  // TODO
+  return p.value();
 }
 
-const Value& Node::evalParam(const ParamDesc& param_) {
-	if (auto p = param(param_)) {
-		return evalParam(*p);
-	}
-	return Value::EMPTY;
+const Value &Node::evalParam(util::StringRef name) {
+  if (auto p = param(name)) {
+    return evalParam(*p);
+  }
+  return Value::EMPTY;
+}
+
+const Value &Node::evalParam(const ParamDesc &param_) {
+  if (auto p = param(param_)) {
+    return evalParam(*p);
+  }
+  return Value::EMPTY;
 }
 
 void Node::setParam(util::StringRef name, util::Value value) {
-	if (auto p = param(name)) {
-		return setParam(*p);
-	}
-	else {
-		// error?
-	}
+  if (auto p = param(name)) {
+    return setParam(*p, std::move(value));
+  } else {
+    // error?
+  }
 }
 
-void Node::setParam(const ParamDesc& param, util::Value value) 
-{
-
+void Node::setParam(const ParamDesc &param_, util::Value value) {
+  if (auto p = param(param_)) {
+    setParam(*p, std::move(value));
+  } else {
+    // error
+  }
 }
 
+void Node::setParam(Param &p, util::Value value) {
+  p.value() = std::move(value);
+}
+
+Param *Node::param(const ParamDesc &param) {
+  for (auto &&p : params_) {
+    if (&p->desc() == &param) {
+      return p.get();
+    }
+  }
+  return nullptr;
+}
+
+Param *Node::param(util::StringRef name) {
+  for (auto &&p : params_) {
+    if (p->name() == name) {
+      return p.get();
+    }
+  }
+  return nullptr;
+}
 
 // ===================================================================
 
 // child added
 void Node::onChildAdded(Node *node) {
-	// TODO
-	util::log("Node[{}]::onChildAdded({})", name().to_string(),
-		node->name().to_string());
-	EventData e;
-	e.source = this;
-	e.type = EventType::ChildAdded;
-	e.u.childAdded.node = node;
-	notify(e);
+  // TODO
+  util::log("Node[{}]::onChildAdded({})", name().to_string(),
+            node->name().to_string());
+  EventData e;
+  e.source = this;
+  e.type = EventType::ChildAdded;
+  e.u.childAdded.node = node;
+  notify(e);
 }
 
 // ===================================================================
@@ -508,7 +544,7 @@ void Node::load(util::JsonReader &r, int baseId) {
       r.beginArray();
       while (r.hasNext()) {
         std::string name;
-        int id;
+        int         id;
         r.beginObject();
         while (r.hasNext()) {
           auto k = r.nextName();
@@ -529,7 +565,7 @@ void Node::load(util::JsonReader &r, int baseId) {
       r.beginArray();
       while (r.hasNext()) {
         std::string name;
-        int id;
+        int         id;
         r.beginObject();
         while (r.hasNext()) {
           auto k = r.nextName();

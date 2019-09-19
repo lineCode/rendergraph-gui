@@ -1,25 +1,33 @@
 #include "img/outputnode.h"
-#include "node/blueprint.h"
+#include "node/template.h"
 
-using node::Blueprint;
 using node::Network;
 using node::Node;
+using node::NodeTemplate;
 
 namespace img {
 
-void ImgOutput::execute(gfx::GraphicsBackend &gfx,
+ImgOutput::ImgOutput(node::Network &parent, util::StringRef name,
+                     node::NodeTemplate &tpl)
+    : ImgNode{parent, name, tpl } {
+  result_ = createInput("Result");
+}
+
+void ImgOutput::execute(gfx::GraphicsBackend &    gfx,
                         const ScreenSpaceContext &ctx) {
   // resolve image
   // gfx->presentToScreen()
 }
 
-void ImgOutput::registerBlueprint() {
-  ImgNetwork::registerChild(new Blueprint(
-      "ImgOutput", "Output", "Displays the input image in the viewport.", "",
-	  nullptr,
-      [](Network &parent, std::string name, Blueprint &blueprint) -> Node * {
-        return new ImgOutput(parent, std::move(name), blueprint);
-      }));
+static Node *createImgOutput(Network &parent, util::StringRef name,
+                             NodeTemplate &blueprint) {
+  return new ImgOutput(parent, name, blueprint);
+}
+
+void ImgOutput::registerTemplate() {
+  ImgNetwork::registerTemplate("ImgOutput", "Output",
+                               "Displays the input image in the viewport.", "",
+                               nullptr, nullptr,nullptr, createImgOutput);
 }
 
 } // namespace img

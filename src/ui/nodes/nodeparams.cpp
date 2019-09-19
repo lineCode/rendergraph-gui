@@ -27,8 +27,8 @@ void NodeParams::rebuild() {
 
     // TODO: should be a child node of the parameter so that it's deleted along
     // with the parameter
-    connect(spinBox, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
-            [param](double newValue) { param->setValue(newValue); });
+    //connect(spinBox, qOverload<double>(&QDoubleSpinBox::valueChanged), this,
+    //        [param](double newValue) { param->setValue(newValue); });
 
     layout->addRow(QString::fromUtf8(name.data(), (int)name.size()), spinBox);
   }

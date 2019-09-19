@@ -4,7 +4,7 @@
 #include "img/outputnode.h"
 #include "img/imgclear.h"
 #include "ui/connectdialog.h"
-#include "node/blueprint.h"
+#include "node/template.h"
 #include "ui/nodes/nodeparams.h"
 #include "util/log.h"
 #include "util/jsonwriter.h"
@@ -31,7 +31,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
   // root graph node
   root_ =
-      std::make_unique<img::ImgNetwork>(nullptr, "root");
+      std::make_unique<img::ImgNetwork>("root");
 
   networkView = new NetworkView{root_.get()};
   networkView->setContextMenuPolicy(Qt::CustomContextMenu);
@@ -87,14 +87,14 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
   connectionStatus = new QLabel{"Status: ?"};
   statusBar()->addPermanentWidget(connectionStatus);
 
-  registerBlueprints();
+  registerNodes();
 }
 
-void MainWindow::registerBlueprints() {
+void MainWindow::registerNodes() {
 	// IMG nodes
-	img::ImgShaderNode::registerBlueprint();
-	img::ImgOutput::registerBlueprint();
-	img::ImgClear::registerBlueprint();
+	img::ImgShaderNode::registerTemplate();
+	img::ImgOutput::registerTemplate();
+	img::ImgClear::registerTemplate();
 }
 
 void MainWindow::exit() {
@@ -119,10 +119,10 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
     contextMenu.exec(networkView->mapToGlobal(pos));
   } else {
     QMenu contextMenu;
-	node::BlueprintTable& currentNetworkBlueprints = root_->blueprints();
+	node::TemplateTable& currentNetworkBlueprints = root_->templates();
 	int n = currentNetworkBlueprints.count();
 	for (int i = 0; i < n; ++i) {
-	  node::Blueprint& bp = currentNetworkBlueprints.at(i);
+	  node::NodeTemplate& bp = currentNetworkBlueprints.at(i);
 	  auto act = contextMenu.addAction(QString::fromStdString(bp.friendlyName().to_string()));
 	  connect(act, &QAction::triggered, this, [this, &bp] () {
 		  addNode(bp);
@@ -152,7 +152,7 @@ void MainWindow::scaleDown() {
   // imageView->setScale(imageView->scale() * 0.5);
 }
 
-void MainWindow::addNode(node::Blueprint& blueprint) {
+void MainWindow::addNode(node::NodeTemplate& blueprint) {
 	auto typeName = blueprint.typeName().to_string();
 	root_->createNode(typeName, typeName);
 }

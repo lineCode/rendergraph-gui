@@ -6,8 +6,8 @@
 
 namespace node {
 
-class Blueprint;
-class BlueprintTable;
+class NodeTemplate;
+class TemplateTable;
 
 /// A node that contains child nodes.
 class Network : public Node {
@@ -17,13 +17,12 @@ public:
   using Ptr = std::unique_ptr<Network>;
 
   //  Network(Network *parent) : Node{parent} {}
-  Network(node::Network *parent, std::string name,
-          node::Blueprint *thisBlueprint, BlueprintTable &blueprintTable)
-      : Node{parent, name, thisBlueprint}, blueprints_{blueprintTable} {}
+  Network(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl_)
+      : Node{parent, name, tpl_ } {}
   virtual ~Network() {}
 
   /// Creates a node of the specified type, and adds it to the network.
-  Node *createNode(util::StringRef typeName, std::string name);
+  virtual Node *createNode(util::StringRef typeName, util::StringRef name) = 0;
 
   /// Adds a child node to this network. The network will take ownership of `node`. 
   /// `node ` must have been allocated with `new`.
@@ -55,7 +54,8 @@ public:
   void addConnection(Node *source, Output *output, Node *destination,
                      Input *input);
 
-  BlueprintTable &blueprints() const { return blueprints_; }
+  ///
+  virtual TemplateTable& templates() const = 0;
 
 protected:
   void loadInternal(util::StringRef key, util::JsonReader &reader) override;
@@ -64,7 +64,6 @@ protected:
 private:
   void makeNameUnique(std::string &name);
 
-  BlueprintTable &blueprints_;
   std::vector<Node::Ptr> children_;
   int uniqueNameCounter_ = 0;
 };

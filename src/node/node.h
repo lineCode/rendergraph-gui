@@ -16,7 +16,7 @@ class Observer;
 class Network;
 class Output;
 class Input;
-class Blueprint;
+class NodeTemplate;
 class ParamDesc;
 
 class Input {
@@ -161,8 +161,9 @@ class Node {
 public:
   using Ptr = std::unique_ptr<Node>;
 
-  // Node(Network *parent);
-  Node(node::Network *parent, std::string name, node::Blueprint *blueprint);
+  // Root constructor
+  Node();
+  Node(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl);
   virtual ~Node();
 
   // Name
@@ -216,6 +217,9 @@ public:
   void setParam(const ParamDesc& param, util::Value value);
   void setParam(Param& p, util::Value value);
 
+  // Template
+  // TODO
+
   // load/save
   void load(util::JsonReader &reader, int baseId);
   void save(util::JsonWriter &writer);
@@ -259,7 +263,6 @@ private:
 
   bool        dirty_ = true;
   std::string name_;
-  Blueprint * blueprint_;
   int         outputIdCounter_ = 0;
   int         inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.

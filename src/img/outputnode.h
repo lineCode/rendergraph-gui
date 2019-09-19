@@ -5,15 +5,13 @@
 namespace img {
 class ImgOutput : public ImgNode {
 public:
-  ImgOutput(node::Network &parent, std::string name, node::Blueprint &blueprint)
-      : ImgNode{parent, std::move(name), blueprint} {
-    result_ = createInput("Result");
-  }
+  ImgOutput(node::Network &parent, util::StringRef name,
+            node::NodeTemplate &blueprint);
 
-  void execute(gfx::GraphicsBackend &gfx,
+  void execute(gfx::GraphicsBackend &    gfx,
                const ScreenSpaceContext &ctx) override;
 
-  static void registerBlueprint();
+  static void registerTemplate();
 
 private:
   node::Input *result_;

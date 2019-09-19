@@ -32,9 +32,9 @@ private Q_SLOTS:
   void addConnection(node::Node *from, node::Output *output, node::Node *to,
                      node::Input *input);
 
-  void addNode(node::Blueprint &blueprint);
+  void addNode(node::NodeTemplate &blueprint);
   void saveNetwork();
-  void registerBlueprints();
+  void registerNodes();
 
 private:
   QAction *deleteNodeAct;

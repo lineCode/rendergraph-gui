@@ -1,20 +1,18 @@
 #pragma once
 #include "img/imgnode.h"
+#include "node/param.h"
 
 namespace img {
 
 	
 class ImgClear : public img::ImgNode {
 public:
-  ImgClear(node::Network &parent, std::string name, node::Blueprint &blueprint)
-      : ImgNode{parent, std::move(name), blueprint} {  
-
-  }
+	ImgClear(node::Network &parent, util::StringRef name, node::NodeTemplate &tpl);
 
   void execute(gfx::GraphicsBackend &gfx,
                const ScreenSpaceContext &ctx) override;
 
-  static void registerBlueprint();
+  static void registerTemplate();
 
 private:
   node::Output *output_;

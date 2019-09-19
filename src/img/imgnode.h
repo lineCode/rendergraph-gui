@@ -34,7 +34,7 @@ enum class ImageOutputScale {
 ///
 class ImgNode : public node::Node {
 public:
-  ImgNode(node::Network &parent, std::string name, node::Blueprint& blueprint);
+  ImgNode(node::Network &parent, util::StringRef name, node::NodeTemplate& tpl_);
 
   //------ Render targets ------
 

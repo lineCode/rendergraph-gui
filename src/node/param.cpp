@@ -2,12 +2,13 @@
 
 namespace node {
 
-ParamDesc::ParamDesc(const ParamName &name, util::StringRef help,
-                     util::Value::Type baseType, int numChannels,
-                     ParamHint paramHint, util::Value defaultValue,
+ParamDesc::ParamDesc(util::StringRef name, util::StringRef friendlyName,
+                     util::StringRef help, util::Value::Type baseType,
+                     int numChannels, ParamHint paramHint,
+                     util::Value                     defaultValue,
                      util::ArrayRef<ParamFloatRange> channelRanges)
-    : name{name}, help{help}, baseType{baseType}, numChannels{numChannels},
-	paramHint{ paramHint}, channelRanges{channelRanges} {}
-
+    : name{name}, friendlyName{friendlyName}, help{help}, baseType{baseType},
+      numChannels{numChannels}, paramHint{paramHint},
+      channelRanges{channelRanges.begin(), channelRanges.end()} {}
 
 } // namespace node
