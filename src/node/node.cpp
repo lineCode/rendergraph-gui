@@ -1,9 +1,10 @@
 #include "node/node.h"
+#include "node/description.h"
 #include "node/network.h"
 #include "node/observer.h"
 #include "node/param.h"
-#include "node/template.h"
 #include "util/log.h"
+#include "util/panic.h"
 #include <algorithm>
 
 using util::Value;
@@ -16,18 +17,11 @@ static int getUniqueNodeIdCounter() { return uniqueNodeIdCounter++; }
 static void setUniqueNodeIdCounter(int value) { uniqueNodeIdCounter = value; }
 
 //------------------------------------------------------------------------------------
-Node::Node() : name_ { "" }, parent_{ nullptr } {
-	id_ = getUniqueNodeIdCounter();
-}
+Node::Node() : name_{""}, parent_{nullptr} { id_ = getUniqueNodeIdCounter(); }
 
-Node::Node(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl_)
+Node::Node(node::Network *parent, util::StringRef name)
     : name_{name.to_string()}, parent_{parent} {
   id_ = getUniqueNodeIdCounter();
-
-  // create parameters and inputs from the template
-  for (auto pd : tpl_.params()) {
-    createParameter(*pd);
-  }
 }
 
 Node::~Node() {
@@ -242,6 +236,28 @@ void Node::disconnectOutput(Output *output) {
   }
 }
 
+bool Node::hasAnyInputConnected() {
+  for (auto &&i : inputs_) {
+    if (isInputConnected(i.get())) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool Node::isSuccessor(Node *of) {
+  for (auto &&i : inputs_) {
+    Node *  srcNode;
+    Output *srcOutput;
+    if (inputSource(i.get(), srcNode, srcOutput)) {
+      if (srcNode == of) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 // child about to be removed
 void Node::onChildRemoved(Node *node) {
 
@@ -267,14 +283,12 @@ void Node::onReferenceRemoved(Node *to) {
 }
 
 void Node::onConnectOutput(Output *output, Node *destination) {
-
   util::log("Node[{}]::onConnectOutput({},{})", name().to_string(),
             output->name, destination->name().to_string());
   // Nothing yet
 }
 
 void Node::onDisconnectOutput(Output *output, Node *destination) {
-
   util::log("Node[{}]::onDisconnectOutput({},{})", name().to_string(),
             output->name, destination->name().to_string());
   // Nothing yet
@@ -441,12 +455,23 @@ bool Node::inputSource(Input *input, Node *&node, Output *&output) {
   return true;
 }
 
+std::vector<Node *> Node::dependentNodes() {
+  std::vector<Node *> result;
+  for (auto &&o : outputs_) {
+    for (auto d : o->dependents) {
+      if (std::find(result.begin(), result.end(), d) == result.end()) {
+        result.push_back(d);
+      }
+    }
+  }
+  return result;
+}
+
 // ===================================================================
 // Parameters
 
 Param *Node::createParameter(const ParamDesc &desc) {
-  util::log("Node[{}]::createParameter name={}", name().to_string(),
-            desc.name);
+  util::log("Node[{}]::createParameter name={}", name().to_string(), desc.name);
   auto param = new Param{this, std::make_shared<ParamDesc>(desc)};
   params_.push_back(std::unique_ptr<Param>(param));
   return param;
@@ -512,6 +537,31 @@ Param *Node::param(util::StringRef name) {
     }
   }
   return nullptr;
+}
+
+// ===================================================================
+
+void Node::setErrorState(util::StringRef message) {
+  error_ = true;
+  errorMsg_ = message.to_string();
+}
+
+void Node::resetErrorState() {
+  error_ = false;
+  errorMsg_ = "";
+}
+
+util::StringRef Node::getErrorMessage() const { return errorMsg_; }
+
+// ===================================================================
+
+void Node::lock() { locks_++; }
+
+void Node::unlock() {
+  if (locks_ == 0) {
+    UT_PANIC_MSG("Node lock/unlock mismatch");
+  }
+  locks_--;
 }
 
 // ===================================================================

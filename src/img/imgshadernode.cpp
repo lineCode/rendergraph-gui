@@ -3,13 +3,14 @@
 #include "gfx/pipeline.h"
 #include "gfx/signature.h"
 #include "img/constantbufferbuilder.h"
-#include "node/template.h"
+#include "img/imgevaluator.h"
+#include "node/description.h"
 #include "util/log.h"
 #include <regex>
 
-using node::Node;
 using node::Network;
-using node::NodeTemplate;
+using node::Node;
+using node::NodeDescription;
 
 namespace img {
 
@@ -64,13 +65,13 @@ bool ImgShaderNode::compile(gfx::GraphicsBackend &gfx) {
   }
 
   // create the signature
-  gfx::SignatureDesc sigDesc;
+  gfx::SignatureDesc         sigDesc;
   const gfx::ResourceBinding resources[2] = {
       gfx::ResourceBinding::makeConstantBuffer(0),
       gfx::ResourceBinding::makeConstantBuffer(1),
   };
   const gfx::FragmentOutputDescription fragOut[1] = {};
-  const gfx::VertexInputBinding vtxIn[1] = {POSITION_LAYOUT,
+  const gfx::VertexInputBinding        vtxIn[1] = {POSITION_LAYOUT,
                                             gfx::VertexInputRate::Vertex, 0};
   sigDesc.fragmentOutputs = util::makeArrayRef(fragOut);
   sigDesc.shaderResources = util::makeArrayRef(resources);
@@ -83,14 +84,14 @@ bool ImgShaderNode::compile(gfx::GraphicsBackend &gfx) {
 
   // render pass
   const gfx::RenderPassTargetDesc targets[1] = {};
-  gfx::RenderPassDesc rpDesc{util::makeArrayRef(targets), nullptr};
-  gfx::RenderPass rp{gfx, rpDesc};
+  gfx::RenderPassDesc             rpDesc{util::makeArrayRef(targets), nullptr};
+  gfx::RenderPass                 rp{gfx, rpDesc};
 
   try {
     // shaders
     gfx::ShaderModule vertexShader{gfx, VERT_SRC_TEMPLATE,
                                    gfx::ShaderStageFlags::VERTEX};
-    auto fragShaderSrc = generateFragmentShaderSource(fragCode_);
+    auto              fragShaderSrc = generateFragmentShaderSource(fragCode_);
     gfx::ShaderModule fragmentShader{gfx, fragShaderSrc,
                                      gfx::ShaderStageFlags::FRAGMENT};
     util::log("ImgNode[{}]: fragment shader: \n{}", name().to_string(),
@@ -122,8 +123,8 @@ bool ImgShaderNode::compile(gfx::GraphicsBackend &gfx) {
   return true;
 }
 
-void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
-                            const ScreenSpaceContext &ctx) {
+void ImgShaderNode::execute(ImgContext &ctx) {
+  auto &&gfx = ctx.gfx();
   if (shaderDirty_) {
     compile(gfx);
   }
@@ -140,14 +141,14 @@ void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
 
   // create the argblock
   gfx::ArgumentBlock args{gfx, signature_};
-  args.setShaderResource(0, ctx.commonParameters);
-  args.setShaderResource(1, constantBufferView);
-  args.setVertexBuffer(0, ctx.quadVertices);
+  // args.setShaderResource(0, ctx.commonParameters);
+  // args.setShaderResource(1, constantBufferView);
+  // args.setVertexBuffer(0, ctx.quadVertices);
   // TODO textures
 
   // check if the framebuffer needs updating
   if (!framebuffer_) {
-    gfx::FramebufferDesc fbDesc;
+    gfx::FramebufferDesc  fbDesc;
     gfx::RenderTargetView rtv;
     // rtv.image = outputs_[0]->getImage(ctx); // TODO
     gfx::RenderTargetView rtvs[1] = {rtv};
@@ -168,21 +169,18 @@ void ImgShaderNode::execute(gfx::GraphicsBackend &gfx,
   // renderTargets_[0]->markDirty();
 }
 
-static Node* createImgShaderNode(Network &parent, util::StringRef name,
-	NodeTemplate &tpl) {
-	return new ImgShaderNode(parent, name, tpl);
+static Node *constructor(Network &parent, util::StringRef name) {
+  return new ImgShaderNode(parent, name);
 }
 
-void ImgShaderNode::registerTemplate() {
-  ImgNetwork::registerTemplate(
-      "ImgShaderNode", "Shader", "Runs a screen-space shader.", "",
-	  nullptr, nullptr, nullptr,
-	  createImgShaderNode);
+void ImgShaderNode::prepare(ImgContext &ctx) {}
+
+void ImgShaderNode::registerNode() {
+  ImgNetwork::registerChild("ImgShaderNode", "Shader",
+                            "Runs a screen-space shader.", constructor);
 }
 
-ImgShaderNode::ImgShaderNode(Network &parent, util::StringRef name,
-                             NodeTemplate &tpl)
-    : ImgNode{parent, name, tpl }, fragCode_{
-                                                       DEFAULT_FRAG_CODE} {}
+ImgShaderNode::ImgShaderNode(Network &parent, util::StringRef name)
+    : ImgNode{parent, name}, fragCode_{DEFAULT_FRAG_CODE} {}
 
 } // namespace img

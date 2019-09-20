@@ -1,10 +1,10 @@
 #include "ui/mainwindow.h"
 #include "QtAwesome/QtAwesome.h"
 #include "img/imgshadernode.h"
-#include "img/outputnode.h"
+#include "img/imgoutput.h"
 #include "img/imgclear.h"
 #include "ui/connectdialog.h"
-#include "node/template.h"
+#include "node/description.h"
 #include "ui/nodes/nodeparams.h"
 #include "util/log.h"
 #include "util/jsonwriter.h"
@@ -92,9 +92,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
 void MainWindow::registerNodes() {
 	// IMG nodes
-	img::ImgShaderNode::registerTemplate();
-	img::ImgOutput::registerTemplate();
-	img::ImgClear::registerTemplate();
+	img::ImgShaderNode::registerNode();
+	img::ImgOutput::registerNode();
+	img::ImgClear::registerNode();
 }
 
 void MainWindow::exit() {
@@ -119,10 +119,10 @@ void MainWindow::showNetworkViewContextMenu(const QPoint &pos) {
     contextMenu.exec(networkView->mapToGlobal(pos));
   } else {
     QMenu contextMenu;
-	node::TemplateTable& currentNetworkBlueprints = root_->templates();
-	int n = currentNetworkBlueprints.count();
+	node::NodeDescriptions& currentNetworkNodes = root_->registeredNodes();
+	int n = currentNetworkNodes.count();
 	for (int i = 0; i < n; ++i) {
-	  node::NodeTemplate& bp = currentNetworkBlueprints.at(i);
+	  node::NodeDescription& bp = currentNetworkNodes.at(i);
 	  auto act = contextMenu.addAction(QString::fromStdString(bp.friendlyName().to_string()));
 	  connect(act, &QAction::triggered, this, [this, &bp] () {
 		  addNode(bp);
@@ -152,7 +152,7 @@ void MainWindow::scaleDown() {
   // imageView->setScale(imageView->scale() * 0.5);
 }
 
-void MainWindow::addNode(node::NodeTemplate& blueprint) {
+void MainWindow::addNode(node::NodeDescription& blueprint) {
 	auto typeName = blueprint.typeName().to_string();
 	root_->createNode(typeName, typeName);
 }

@@ -61,7 +61,7 @@ gfx::ImageHandle RenderTargetCache::getImage(RenderTarget *renderTarget) {
 void RenderTargetCache::assignImage(RenderTarget *rt) {
   // For now, we simply look for an unused image in the cache and use it.
   // If there are no unused images in the cache, we create a new one.
-  // In the future, we might want to share images between render target if
+  // In the future, we might want to share images between render targets if
   // we can prove that the render targets are not used at the same time in the
   // graph (see "Frame graphs"). In theory, we can also reorder the passes
   // within the frame to maximize aliasing (and minimize the amount of memory

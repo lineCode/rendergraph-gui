@@ -37,6 +37,7 @@ file(GLOB SOURCES
     src/gfx/*.cpp
     src/gfxopengl/*.cpp
     src/client/*.cpp)
+
 file(GLOB HEADERS 
     src/*.h
     src/ui/*.h 

@@ -3,14 +3,19 @@
 
 namespace img {
 
+class ImgContext;
+
 ///
 /// A node representing a screen space operation.
 ///
 /// `ImgNode`s execute in the "screen space" context.
 class ImgShaderNode : public img::ImgNode {
 public:
-  ImgShaderNode(node::Network &parent, util::StringRef name,
-                node::NodeTemplate &tpl);
+  ImgShaderNode(node::Network &parent, util::StringRef name);
+
+  void prepare(ImgContext& ctx) override;
+  void execute(ImgContext& ctx) override;
+
   //------ Fragment shader ------
 
   /// Returns the body of the fragment shader.
@@ -20,10 +25,7 @@ public:
 
   bool compilationSucceeded() const { return compilationSuccess_; }
 
-  void execute(gfx::GraphicsBackend &gfx,
-               const ScreenSpaceContext &ctx) override;
-
-  static void registerTemplate();
+  static void registerNode();
 
 private:
   bool compile(gfx::GraphicsBackend &gfx);

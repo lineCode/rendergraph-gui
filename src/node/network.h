@@ -6,8 +6,8 @@
 
 namespace node {
 
-class NodeTemplate;
-class TemplateTable;
+class NodeDescription;
+class NodeDescriptions;
 
 /// A node that contains child nodes.
 class Network : public Node {
@@ -17,8 +17,8 @@ public:
   using Ptr = std::unique_ptr<Network>;
 
   //  Network(Network *parent) : Node{parent} {}
-  Network(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl_)
-      : Node{parent, name, tpl_ } {}
+  Network(node::Network *parent, util::StringRef name)
+      : Node{parent, name } {}
   virtual ~Network() {}
 
   /// Creates a node of the specified type, and adds it to the network.
@@ -55,7 +55,13 @@ public:
                      Input *input);
 
   ///
-  virtual TemplateTable& templates() const = 0;
+  std::vector<std::vector<Node*>> buildAdjacencyList();
+
+  /// Returns a vector containing a topologically sorted list of all the child nodes in this network.
+  std::vector<Node*> sortedChildren();
+
+  ///
+  virtual NodeDescriptions& registeredNodes() const = 0;
 
 protected:
   void loadInternal(util::StringRef key, util::JsonReader &reader) override;

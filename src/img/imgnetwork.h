@@ -1,29 +1,30 @@
 #pragma once
 #include "gfx/gfx.h"
 #include "img/rendertarget.h"
+#include "node/description.h"
 #include "node/network.h"
 #include "node/node.h"
-#include "node/template.h"
+
+#include <unordered_map>
 
 namespace img {
 
-struct ScreenSpaceContext {
-  /// Width of the viewport in pixels
-  int width;
-  /// Height of the viewport in pixels
-  int height;
-  /// Current time
-  double currentTime;
-  /// Current frame
-  int currentFrame;
-  /// Constant buffer containing the common parameters (camera, matrices, etc.)
-  gfx::ConstantBufferView commonParameters;
-  gfx::VertexBufferView   quadVertices;
+enum class ImageOutputScale {
+	/// output size is size defined in the current project
+	ProjectSize,
+	/// output size is a fraction of the size defined in the current stylization
+	/// project
+	FractionOfProjectSize,
+	/// output size is the size of the first input
+	SizeOfFirstInput,
+	/// output size is a fraction of the first input
+	FractionOfFirstInput,
+	/// custom output size
+	CustomSize,
+	/// output size is input size rescaled to the given aspect ratio
+	CustomAspectRatio,
 };
 
-struct RenderTargetDesc {
-  //
-};
 
 class ImgTemplate;
 class ImgNode;
@@ -35,37 +36,26 @@ class ImgNetwork : public node::Network {
 
 public:
   using Ptr = std::unique_ptr<ImgNetwork>;
-
   ImgNetwork(util::StringRef name);
-
-  /*
-  ImgNetwork(node::Network * parent, util::StringRef name, node::NodeTemplate&
-  tpl) : Network{parent, name, tpl}
-  {
-  }*/
 
   void  onChildAdded(Node *node) override;
   void  onChildRemoved(Node *node) override;
   Node *createNode(util::StringRef typeName, util::StringRef name) override;
 
   /// Registers a template for creating an IMG node.
-  static void    registerTemplate(util::StringRef name,
-                                  util::StringRef friendlyName,
-                                  util::StringRef description,
-                                  util::StringRef icon,
-                                  util::ArrayRef<const node::ParamDesc*> params,
-	  util::ArrayRef<const node::InputDesc *> inputs,
-	  util::ArrayRef<const node::OutputDesc *> outputs,
-                                  node::Constructor constructor);
+  static void registerChild(util::StringRef name, util::StringRef friendlyName,
+                            util::StringRef   description,
+                            node::Constructor constructor);
 
-  node::TemplateTable &templates() const override { return imgTemplates_; }
+  node::NodeDescriptions &registeredNodes() const override {
+    return descriptions_;
+  }
 
 private:
-  static node::NodeTemplate &getTemplate();
-  void                       setOutput(ImgOutput *output);
+  void setOutput(ImgOutput *output);
 
-  static node::TemplateTable imgTemplates_;
-  ImgOutput *                output_ = nullptr;
+  static node::NodeDescriptions descriptions_;
+  ImgOutput *                   output_ = nullptr;
 };
 
 } // namespace img

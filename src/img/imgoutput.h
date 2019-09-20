@@ -1,13 +1,11 @@
 #pragma once
+#include "img/imgnetwork.h"
 #include "img/imgnode.h"
-#include "node/param.h"
 
 namespace img {
-
-	
-class ImgClear : public img::ImgNode {
+class ImgOutput : public ImgNode {
 public:
-	ImgClear(node::Network &parent, util::StringRef name);
+  ImgOutput(node::Network &parent, util::StringRef name);
 
   void execute(ImgContext& ctx) override;
   void prepare(ImgContext& ctx) override;
@@ -15,8 +13,6 @@ public:
   static void registerNode();
 
 private:
-  //node::Output *output_;
-  //RenderTarget *target_;
+  node::Input *result_;
 };
-
 } // namespace img

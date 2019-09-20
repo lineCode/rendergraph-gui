@@ -1,42 +1,29 @@
 #include "img/imgnetwork.h"
 #include "gfx/gfx.h"
 #include "img/imgnode.h"
-#include "img/outputnode.h"
+#include "img/imgoutput.h"
 #include "img/rendertarget.h"
-#include "node/template.h"
+#include "node/description.h"
 #include "util/log.h"
 
 #include <unordered_map>
 
 using node::Network;
 using node::Node;
-using node::NodeTemplate;
+using node::NodeDescription;
 
 namespace img {
 
-void ImgNetwork::registerTemplate(
-    util::StringRef name, util::StringRef friendlyName,
-    util::StringRef description, util::StringRef icon,
-    util::ArrayRef<const node::ParamDesc*>  params,
-    util::ArrayRef<const node::InputDesc *>  inputs,
-    util::ArrayRef<const node::OutputDesc *> outputs,
-    node::Constructor                        constructor) {
-  // TODO
-  auto tpl = new node::NodeTemplate(name.to_string(), friendlyName.to_string(),
-                                    description.to_string(), icon.to_string(),
-                                    params, inputs, outputs, constructor);
-  imgTemplates_.registerTemplate(std::unique_ptr<NodeTemplate>(tpl));
+void ImgNetwork::registerChild(util::StringRef   name,
+                              util::StringRef   friendlyName,
+                              util::StringRef   description,
+                              node::Constructor constructor) {
+  descriptions_.registerNode(name.to_string(), friendlyName.to_string(),
+                             description.to_string(), constructor);
 }
 
-static Node *createImgNetwork(Network &parent, util::StringRef name,
-                              NodeTemplate &tpl) {
+static Node *constructor(Network &parent, util::StringRef name) {
   return new ImgNetwork(name);
-}
-
-NodeTemplate &ImgNetwork::getTemplate() {
-  static NodeTemplate tpl{"img",   "IMG network", "IMG network",   "", nullptr,
-                          nullptr, nullptr,       createImgNetwork};
-  return tpl;
 }
 
 void ImgNetwork::setOutput(ImgOutput *output) {
@@ -68,18 +55,17 @@ void ImgNetwork::onChildRemoved(Node *node) {
   }
 }
 
-ImgNetwork::ImgNetwork(util::StringRef name)
-    : Network{nullptr, name, getTemplate()} {}
+ImgNetwork::ImgNetwork(util::StringRef name) : Network{nullptr, name} {}
 
 Node *ImgNetwork::createNode(util::StringRef typeName, util::StringRef name) {
-  auto bp = imgTemplates_.findTemplate(typeName);
-  if (!bp) {
+  auto desc = descriptions_.find(typeName);
+  if (!desc) {
     util::log("WARNING ImgNetwork::createNode: unknown node type `{}`",
               typeName.to_string());
   }
-  return addChild(bp->make(*this, std::move(name)));
+  return addChild(desc->instantiate(*this, name));
 }
 
-node::TemplateTable ImgNetwork::imgTemplates_;
+node::NodeDescriptions ImgNetwork::descriptions_;
 
 } // namespace img

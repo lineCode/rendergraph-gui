@@ -1,91 +1,41 @@
 #pragma once
-#include "gfx/image.h"
-#include "gfx/pipeline.h"
-#include "img/imgnetwork.h"
-#include "img/rendertarget.h"
+#include "gfx/gfx.h"
 #include "node/network.h"
 #include "node/node.h"
+#include "util/stringref.h"
 #include <memory>
 #include <string>
 
 namespace img {
 
-enum class ImageOutputScale {
-  /// output size is size defined in the current project
-  ProjectSize,
-  /// output size is a fraction of the size defined in the current stylization
-  /// project
-  FractionOfProjectSize,
-  /// output size is the size of the first input
-  SizeOfFirstInput,
-  /// output size is a fraction of the first input
-  FractionOfFirstInput,
-  /// custom output size
-  CustomSize,
-  /// output size is input size rescaled to the given aspect ratio
-  CustomAspectRatio,
-};
+class ImgContext;
+class ImgNetwork;
 
-///
 /// A node representing a screen space operation.
 ///
-/// Contains methods to manage render targets and bind render targets and images
-/// to outputs.
-///
+/// In addition to inputs, outputs, and parameters, IMG nodes also keep track
+/// of eventual render targets needed by the operation.
 class ImgNode : public node::Node {
 public:
-  ImgNode(node::Network &parent, util::StringRef name, node::NodeTemplate& tpl_);
+  ImgNode(node::Network &parent, util::StringRef name);
 
-  //------ Render targets ------
+  //------ outputs -------
+  
+  /// Returns the image handle associated to the specified output.
+  /// This method should be overriden in derived classes.
+  /// The default implementation returns the image associated with the render target of the same name.
+  virtual gfx::ImageHandle getOutputImage(ImgContext& ctx, util::StringRef outputName);
 
-  /// Registers a new render target for this node with the given image
-  /// description.
-  RenderTarget *createRenderTarget(const gfx::ImageDesc &desc);
-  /// Sets the image description for a registered render target.
-  void setRenderTargetDesc(RenderTarget *renderTarget,
-                           const gfx::ImageDesc &desc);
-  /// Returns the image description of a registered render target.
-  const gfx::ImageDesc &getRenderTargetDesc(RenderTarget *renderTarget);
-  /// Returns the image allocated for a registered render target.
-  gfx::ImageHandle getRenderTargetImage(RenderTarget *renderTarget);
-  /// Deletes the specified registered render target.
-  void deleteRenderTarget(RenderTarget *output);
+  //------ execution ------
 
-  //------ Output ------
-
-  /// Assigns a render target to the specified output
-  void assignOutputImage(node::Output *output, RenderTarget *renderTarget);
-  /// Assigns an image to the specified output.
-  void assignOutputImage(node::Output *output, const gfx::ImageDesc &desc,
-                         gfx::ImageHandle target);
-  /// Returns the image handle of the specified output, along with the image description.
-  /// May return a null handle if no image was assign to the specified output.
-  gfx::ImageHandle getOutputImage(node::Output *output, gfx::ImageDesc &outDesc);
-
-
-  virtual void execute(gfx::GraphicsBackend &gfx,
-                       const ScreenSpaceContext &ctx) = 0;
-
-  static RenderTargetCache &renderTargetCache();
+  /// Called before rendering so that the system knows what render targets are going to be used.
+  /// Implementors should call setRenderTargetDesc() within this function for each target that the node needs.
+  virtual void prepare(ImgContext& ctx) = 0;
+  /// Executes the node. Nodes should call operations on the graphics context here.
+  virtual void execute(ImgContext& ctx) = 0;
 
 protected:
-  void assignOutputImagePrivate(node::Output *output, RenderTarget *renderTarget,
-                                const gfx::ImageDesc &desc,
-                                gfx::ImageHandle target);
-
-  struct OutputTarget {
-    // corresponding output
-    node::Output *output;
-    // The render target that was assigned to this output. nullptr if this
-    // output was not assigned a render target.
-    RenderTarget *renderTarget;
-    gfx::ImageDesc desc;
-    gfx::ImageHandle image;
-  };
-
   ImgNetwork &parent_;
-  std::vector<RenderTarget *> renderTargets_;
-  std::vector<OutputTarget> outputMap_;
 };
 
 } // namespace img

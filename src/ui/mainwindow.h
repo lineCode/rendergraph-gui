@@ -32,7 +32,7 @@ private Q_SLOTS:
   void addConnection(node::Node *from, node::Output *output, node::Node *to,
                      node::Input *input);
 
-  void addNode(node::NodeTemplate &blueprint);
+  void addNode(node::NodeDescription &blueprint);
   void saveNetwork();
   void registerNodes();
 

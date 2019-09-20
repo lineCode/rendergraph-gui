@@ -16,7 +16,7 @@ class Observer;
 class Network;
 class Output;
 class Input;
-class NodeTemplate;
+class NodeDescription;
 class ParamDesc;
 
 class Input {
@@ -114,13 +114,9 @@ void eraseRemoveUniquePtr(Container &container, const T *val) {
   static_assert(
       std::is_same<typename Container::value_type, std::unique_ptr<T>>::value,
       "Container value type must be unique_ptr<T>");
-  auto it = std::remove_if(container.begin(), container.end(),
-                           [val](const std::unique_ptr<T> &ptr) {
-                             if (ptr.get() == val) {
-                               return true;
-                             }
-                             return false;
-                           });
+  auto it = std::remove_if(
+      container.begin(), container.end(),
+      [val](const std::unique_ptr<T> &ptr) { return ptr.get() == val; });
   container.erase(it, container.end());
 }
 
@@ -129,13 +125,9 @@ void eraseRemoveId(Container &container, int id) {
   static_assert(
       std::is_same<typename Container::value_type, std::unique_ptr<T>>::value,
       "Container value type must be unique_ptr<T>");
-  static_assert() auto it = std::remove_if(
-      container.begin(), container.end(), [val](const std::unique_ptr<T> &ptr) {
-        if (ptr->id() == id) {
-          return true;
-        }
-        return false;
-      });
+  auto it = std::remove_if(
+      container.begin(), container.end(),
+      [val](const std::unique_ptr<T> &ptr) { return ptr->id() == id; });
   container.erase(it, container.end());
 }
 
@@ -163,7 +155,7 @@ public:
 
   // Root constructor
   Node();
-  Node(node::Network *parent, util::StringRef name, node::NodeTemplate &tpl);
+  Node(node::Network *parent, util::StringRef name);
   virtual ~Node();
 
   // Name
@@ -201,6 +193,9 @@ public:
   int             outputUniqueId(Output *output);
   bool            isInputConnected(Input *input);
   bool            inputSource(Input *input, Node *&node, Output *&output);
+  bool            hasAnyInputConnected();
+  bool            isSuccessor(Node *of);
+  std::vector<Node *> dependentNodes();
 
   // Parameters
   Param *createParameter(const ParamDesc &desc);
@@ -213,12 +208,18 @@ public:
   const util::Value &evalParam(Param &p);
   const util::Value &evalParam(util::StringRef name);
   const util::Value &evalParam(const ParamDesc &param);
-  void setParam(util::StringRef name, util::Value value);
-  void setParam(const ParamDesc& param, util::Value value);
-  void setParam(Param& p, util::Value value);
+  void               setParam(util::StringRef name, util::Value value);
+  void               setParam(const ParamDesc &param, util::Value value);
+  void               setParam(Param &p, util::Value value);
 
-  // Template
-  // TODO
+  // error states
+  void            setErrorState(util::StringRef message);
+  void            resetErrorState();
+  util::StringRef getErrorMessage() const;
+
+  // lock
+  void lock();
+  void unlock();
 
   // load/save
   void load(util::JsonReader &reader, int baseId);
@@ -261,8 +262,17 @@ private:
   int getInputId() { return inputIdCounter_++; }
   int getOutputId() { return outputIdCounter_++; }
 
+  // if locked, then it's a logic error to modify the node, i.e. the following operations become invalid: 
+  // - add/remove an input/output
+  // - add/remove a parameter
+  // - add/remove child nodes (for networks)
+  // - add/remove connections (for networks)
+  // and also some operations specific to the derived type.
+  int		  locks_ = 0;
+  bool        error_;
   bool        dirty_ = true;
   std::string name_;
+  std::string errorMsg_;
   int         outputIdCounter_ = 0;
   int         inputIdCounter_ = 0;
   // unique ID across all networks, used for serialization.
